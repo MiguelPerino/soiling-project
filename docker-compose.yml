@@ -1,0 +1,40 @@
+# Uso local (computador na mesma rede Wi-Fi do ESP32):
+#   cp .env.example .env   # preencha
+#   docker compose up -d --build                       # app + PostgreSQL  ->  http://localhost:8000
+#   docker compose --profile sim up -d --build         # + simulador do ESP32 (aponte ESP32_URL=http://simulador:8081)
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: soiling
+      POSTGRES_DB: soiling
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U soiling"]
+      interval: 5s
+      retries: 10
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on: { db: { condition: service_healthy } }
+    environment:
+      DATABASE_URL: postgresql+psycopg://soiling:${POSTGRES_PASSWORD}@db:5432/soiling
+      ESP32_URL: ${ESP32_URL:-}
+      ESP32_KEY: ${ESP32_KEY:-}
+      INPUT_SIZE: ${INPUT_SIZE:-96}
+      ADMIN_API_KEY: ${ADMIN_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-}
+    volumes: [images:/data/images]
+    ports: ["8000:8000"]
+  simulador:
+    profiles: ["sim"]
+    build: { context: ., dockerfile: Dockerfile.simulator }
+    environment: { ESP32_KEY: "${ESP32_KEY:-}" }
+    volumes: ["./ai-model/models/current:/model:ro"]
+    ports: ["8081:8081"]
+volumes:
+  pgdata:
+  images:
