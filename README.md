@@ -3,15 +3,22 @@
 Protótipo que **classifica o nível de sujeira de um painel solar a partir de uma foto** (`LIMPO`, `MODERADO` ou `SEVERO`)
 e, se for `SEVERO` com confiança suficiente, **aciona uma pequena bomba de água** para limpar.
 
-A rede neural roda **no ESP32**. O backend só recebe a foto do front, encaminha ao ESP32 pelo Wi‑Fi local e registra o resultado.
+Há **dois modos de análise**, escolhidos no front a cada envio (não existe modo "comparar"):
+- **ESP32, na hora:** o backend redimensiona a foto e manda ao ESP32 pelo Wi‑Fi; a rede neural roda **no ESP32**, que também decide a bomba.
+- **Servidor:** um modelo grande opcional (ONNX, ex.: ResNet, 3 classes) roda no backend. **Nunca aciona a bomba.**
 
 ```
-Celular/PC (React)  ──foto──▶  Backend (FastAPI)  ──JPEG 112×112──▶  ESP32 (TFLite int8)
-      ▲                         │  grava arquivo + linha                │  decide a bomba
-      └──── resultado ──────────┴──── PostgreSQL ◀── resultado ─────────┘
+Celular/PC (React) ──foto──▶ Backend (FastAPI) ──JPEG 112×112──▶ ESP32 (TFLite int8, 2 classes) ──▶ bomba
+      ▲                        │  ONNX Runtime (modo servidor, 3 classes, sem bomba)
+      └──── resultado ─────────┴──── grava arquivo + linha no banco (PostgreSQL; SQLite em dev)
                                          ▲
                       Gemini (opcional): resumos e busca em português
 ```
+
+**Modelo atual do ESP32:** `soilnet-112-20261110` (v1, da equipe de IA): binário NAOLIMPAR/LIMPAR, entrada 112×112, int8, 114 KB.
+Mapeado para `LIMPO`/`SEVERO`; decide `SEVERO` quando P(LIMPAR) ≥ 0,41. Detalhes em `docs/04_FIRMWARE_ESP32.md`.
+Tamanho de entrada e classes são configuráveis (`ESP32_INPUT_SIZE`, `ESP32_CLASSES`, `SERVER_INPUT_SIZE`, `.env.example`).
+O dataset **não** entra no repositório: só o modelo treinado e as imagens novas que voltam do sistema (export em zip).
 
 | Pasta | O que tem |
 | --- | --- |
@@ -26,28 +33,34 @@ Celular/PC (React)  ──foto──▶  Backend (FastAPI)  ──JPEG 112×112�
 | `.claude/skills/` | Skills para Claude Code e Codex (`AGENTS.md` é o contexto principal) |
 | `historico/` | Registro do que foi feito antes da mudança de rumo (só documentação) |
 
-## Rodar agora, sem hardware
+## Rodar
 
 ```bash
-scripts/setup.sh          # Windows: scripts\setup.ps1  (cria .venv, instala, compila o front)
-scripts/dev.sh            # simulador do ESP32 + API com SQLite  ->  http://localhost:8000
+scripts/setup.sh                    # uma vez. Windows: scripts\setup.ps1 (cria .venv, instala, compila o front)
+scripts/dev.sh                      # ESP32 SIMULADO + API (SQLite) -> http://localhost:8000
+scripts/dev-esp32.sh 10.168.71.63   # ESP32 REAL: passe o IP que o monitor serial imprime. Windows: scripts\dev-esp32.ps1
 ```
 Ou com Docker (PostgreSQL incluso): `cp .env.example .env`, edite, `docker compose --profile sim up -d --build`.
 
-O simulador usa, por padrão, um **modelo sintético que decide pela cor dominante, não pela sujeira**. Só depois de treinar
-(`docs/02_DATASET_E_TREINO.md`) o resultado passa a significar algo.
+- O `dev.sh` usa o **modelo real soilnet** no simulador quando `ai-model/models/current/` existe; sem ele, cai num modelo sintético de demonstração.
+- **Gravar o firmware:** passo a passo (Wi‑Fi em `secrets.h`, `pio run -t upload`, monitor serial, teste do LED) em `docs/04_FIRMWARE_ESP32.md`, seção "Primeiro teste na placa".
+  O pino da bomba está em `GPIO 2` (LED azul da placa) para validar sem bomba ligada.
+- **Modelo grande (servidor):** coloque `model.onnx`, `labels.json` e `model_card.json` em `backend/models/server/` e reinicie. Veja `docs/12_MODELO_NO_SERVIDOR.md`.
+  Sem o modelo, só o modo servidor fica indisponível; o modo ESP32 segue normal (`/api/config` mostra o motivo).
+- Fotos enviadas e corrigidas à mão saem em zip pela tela de histórico, no formato que `prepare_data.py --extra` lê para retreinar.
 
 ## O que está validado e o que não está (leia antes da apresentação)
 
 | Parte | Estado |
 | --- | --- |
 | Backend, banco (SQLite **e** PostgreSQL 16), protocolo com ESP32 simulado | testado automaticamente: 45 testes em SQLite. PostgreSQL 16 passou antes do modo servidor (10/11) e **não foi reexecutado** depois |
+| **Firmware no ESP32 (12/11)** | **compilado, gravado e rodando numa placa esp32dev**: o modelo soilnet carrega, conecta no Wi‑Fi, responde ao backend, e uma imagem classificada `SEVERO` acendeu o LED azul (GPIO 2) com a regra de bomba. Houve folga de memória (relato da equipe) |
 | Modo servidor (modelo grande ONNX) | testado com um ONNX **sintético** (carga, os dois modos, bomba nunca acionada, modelo ausente, exportação, navegador). Acurácia e latência de uma ResNet real: **não medidas** |
 | Front no navegador (fluxo completo, mobile, tema escuro) | testado com Playwright contra o stack real, usando o simulador |
 | Pipeline de treino → TFLite int8 → simulador | testado de ponta a ponta com imagens **sintéticas** (prova o encanamento, não a acurácia) |
 | Política de segurança da bomba (C++) | testada no computador |
-| **Acurácia com fotos reais** | **não medida**: falta treinar com o dataset Roboflow e suas fotos |
-| **Firmware no ESP32, memória do modelo, bomba real** | **não testado em hardware**: código escrito, não compilado aqui |
+| **Acurácia com fotos reais na placa** | **não medida por nós**: só as métricas de treino da equipe. Limiar 0,41 (ESP32) vs. 0,60 (backend marca baixa confiança) ainda a alinhar |
+| **Bomba real, uso contínuo, tempo de inferência medido, Wi‑Fi da universidade** | **não testados**: só o LED foi verificado, com imagens de cor lisa (prova o caminho, não a acurácia) |
 | Gemini real | **não testado** contra a API (sem rede no ambiente de construção); testado com cliente falso |
 | Docker, Terraform | **não executados** (sem Docker/Terraform aqui); Terraform só teve a sintaxe verificada |
 
