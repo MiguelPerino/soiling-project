@@ -1,8 +1,12 @@
+import { Wifi, WifiOff } from "lucide-react";
 import { useEffect, useState } from "react";
 import { api } from "../api";
 import type { DeviceStatus } from "../types";
 
-export function StatusPill() {
+export interface DeviceView { s: DeviceStatus | null; lost: boolean }
+
+/** Pergunta a cada 5 s se o ESP32 está no ar. Um só lugar consulta; quem precisa do estado recebe por props. */
+export function useDeviceStatus(): DeviceView {
   const [s, setS] = useState<DeviceStatus | null>(null);
   const [lost, setLost] = useState(false);
 
@@ -15,18 +19,27 @@ export function StatusPill() {
     return () => { alive = false; clearInterval(t); };
   }, []);
 
-  let text = "verificando…";
-  let dot = "bg-stone-400";
-  if (lost) { text = "servidor fora do ar"; dot = "bg-red-500"; }
-  else if (s && !s.configured) { text = "ESP32 não configurado"; dot = "bg-amber-500"; }
-  else if (s?.online) { text = `ESP32 online · ${s.latency_ms} ms`; dot = "bg-green-500"; }
-  else if (s) { text = "ESP32 offline"; dot = "bg-red-500"; }
+  return { s, lost };
+}
 
+export type Tone = "ok" | "warn" | "bad" | "idle";
+
+export function describeDevice({ s, lost }: DeviceView): { text: string; tone: Tone; detail: string } {
+  if (lost) return { text: "servidor fora do ar", tone: "bad", detail: "A API não respondeu" };
+  if (s && !s.configured) return { text: "ESP32 não configurado", tone: "warn", detail: "Defina ESP32_URL no backend" };
+  if (s?.online) return { text: `ESP32 online · ${s.latency_ms} ms`, tone: "ok", detail: `Latência de ${s.latency_ms} ms` };
+  if (s) return { text: "ESP32 offline", tone: "bad", detail: s.error ?? "Sem resposta da placa" };
+  return { text: "verificando…", tone: "idle", detail: "Consultando o ESP32" };
+}
+
+/** Selo do topo. O texto (data-testid="esp-status") é o mesmo de antes. */
+export function StatusPill({ view }: { view: DeviceView }) {
+  const d = describeDevice(view);
   return (
-    <span role="status" aria-live="polite" className="inline-flex items-center gap-2 rounded-full border border-stone-300 px-3 py-1 text-sm dark:border-stone-700">
-      <span className={`h-2.5 w-2.5 rounded-full ${dot}`} aria-hidden />
-      <span data-testid="esp-status">{text}</span>
-      {s?.info?.device?.includes("simulator") && <span className="rounded bg-amber-200 px-1.5 text-xs font-semibold text-amber-900">simulador</span>}
+    <span role="status" aria-live="polite" className={`status-pill ${d.tone}`}>
+      {d.tone === "ok" ? <Wifi size={15} aria-hidden /> : <WifiOff size={15} aria-hidden />}
+      <span data-testid="esp-status">{d.text}</span>
+      {view.s?.info?.device?.includes("simulator") && <em className="sim-tag">simulador</em>}
     </span>
   );
 }

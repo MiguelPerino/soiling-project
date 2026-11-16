@@ -20,6 +20,6 @@ constexpr size_t   MAX_BODY_BYTES      = 32 * 1024; // buffer do JPEG recebido; 
 constexpr size_t   TENSOR_ARENA_BYTES  = 96 * 1024; // o model_card estima ~69 KB; o firmware imprime arena_used_bytes() no boot: ajuste depois de medir
 
 // ---- bomba (valores de segurança; o backend também limita a 60 s) ----
-constexpr uint32_t PUMP_DURATION_MS    = 5000;      // quanto tempo a bomba fica ligada em cada acionamento
+constexpr uint32_t PUMP_DURATION_MS    = 2000;      // quanto tempo a bomba fica ligada em cada acionamento
 constexpr uint32_t PUMP_MAX_MS         = 60000;     // teto absoluto, mesmo que o valor acima seja alterado por engano
-constexpr uint32_t PUMP_COOLDOWN_MS    = 60000;     // intervalo mínimo entre acionamentos (aumente para uso real)
+constexpr uint32_t PUMP_COOLDOWN_MS    = 10000;     // intervalo mínimo entre acionamentos (aumente para uso real)

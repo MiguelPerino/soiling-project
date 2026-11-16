@@ -1,52 +1,59 @@
+import { KeyRound, Menu, ShieldCheck } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { api } from "./api";
-import type { Config } from "./types";
-import { AdminKey } from "./components/AdminKey";
+import { api, getAdminKey } from "./api";
+import type { Config, Stats } from "./types";
+import { AdminPopover } from "./components/AdminKey";
 import { Analyze } from "./components/Analyze";
 import { Assistant } from "./components/Assistant";
 import { Dashboard } from "./components/Dashboard";
 import { History } from "./components/History";
-import { StatusPill } from "./components/StatusPill";
-
-const TABS = [
-  { id: "analisar", label: "Analisar" },
-  { id: "historico", label: "Histórico" },
-  { id: "painel", label: "Painel" },
-  { id: "assistente", label: "Assistente" },
-] as const;
-type Tab = (typeof TABS)[number]["id"];
+import { Sidebar, TABS, type Tab } from "./components/Sidebar";
+import { StatusPill, useDeviceStatus } from "./components/StatusPill";
 
 export default function App() {
   const [tab, setTab] = useState<Tab>("analisar");
   const [config, setConfig] = useState<Config | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [refresh, setRefresh] = useState(0);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [adminOpen, setAdminOpen] = useState(false);
+  const [adminSet, setAdminSet] = useState(!!getAdminKey());
+  const [review, setReview] = useState(0);
+  const device = useDeviceStatus();
   const bump = useCallback(() => setRefresh((n) => n + 1), []);
 
   useEffect(() => { api.config().then(setConfig).catch((e: Error) => setErr(e.message)); }, []);
+  // Só para o número no menu "Histórico" (análises aguardando revisão).
+  useEffect(() => { api.stats().then((s: Stats) => setReview(s.para_revisao)).catch(() => undefined); }, [refresh]);
 
+  const meta = TABS.find((t) => t.id === tab)!;
   return (
-    <div className="mx-auto max-w-6xl px-4 pb-16">
-      <header className="flex flex-wrap items-center justify-between gap-3 py-4">
-        <h1 className="text-xl font-bold">☀️ Soiling Detection</h1>
-        <div className="flex flex-wrap items-center gap-2">
-          <StatusPill />
-          {config && <AdminKey protectedApi={config.admin_protegido} />}
-        </div>
-      </header>
-      <nav className="mb-4 flex gap-1 overflow-x-auto rounded-xl bg-stone-200 p-1 dark:bg-stone-800" role="tablist" aria-label="Seções">
-        {TABS.map((t) => (
-          <button key={t.id} role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)}
-            className={`min-h-[44px] flex-1 whitespace-nowrap rounded-lg px-4 text-sm font-semibold ${tab === t.id ? "bg-white shadow dark:bg-stone-950" : "text-stone-600 dark:text-stone-300"}`}>
-            {t.label}
-          </button>
-        ))}
-      </nav>
-      <main>
-        {err && <p role="alert" className="card text-red-700 dark:text-red-300">{err}</p>}
+    <div className="app-shell">
+      <Sidebar tab={tab} setTab={setTab} mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} review={review} device={device}
+        config={config} adminSet={adminSet} onAdmin={() => { setAdminOpen((v) => !v); setMobileOpen(false); }} />
+      <main className="main-area">
+        <header className="topbar">
+          <button className="mobile-menu" onClick={() => setMobileOpen(true)} aria-label="Abrir menu"><Menu size={21} /></button>
+          <div className="page-heading">
+            <h1>{meta.title}</h1>
+            <p>{meta.subtitle}</p>
+          </div>
+          <div className="top-actions">
+            <StatusPill view={device} />
+            {config?.admin_protegido && (
+              <button className="admin-chip" onClick={() => setAdminOpen((v) => !v)} aria-expanded={adminOpen}>
+                {adminSet ? <ShieldCheck size={17} aria-hidden /> : <KeyRound size={17} aria-hidden />}
+                <span>{adminSet ? "Admin ativo" : "Admin"}</span>
+              </button>
+            )}
+          </div>
+        </header>
+        {adminOpen && config?.admin_protegido && <AdminPopover onClose={() => setAdminOpen(false)} onSaved={() => setAdminSet(!!getAdminKey())} />}
+        {err && <div className="page-content"><p role="alert" className="alert error">{err}</p></div>}
+        {!config && !err && <div className="page-content"><p className="loading-line">Carregando…</p></div>}
+        {config && tab === "painel" && <Dashboard config={config} refreshKey={refresh} onAnalyze={() => setTab("analisar")} onOpenHistory={() => setTab("historico")} onChanged={bump} />}
         {config && tab === "analisar" && <Analyze config={config} onDone={bump} />}
-        {config && tab === "historico" && <History config={config} refreshKey={refresh} onChanged={bump} />}
-        {config && tab === "painel" && <Dashboard refreshKey={refresh} />}
+        {config && tab === "historico" && <History config={config} refreshKey={refresh} review={review} onChanged={bump} />}
         {config && tab === "assistente" && <Assistant config={config} onChanged={bump} />}
       </main>
     </div>

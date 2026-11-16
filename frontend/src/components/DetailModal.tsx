@@ -1,11 +1,13 @@
+import { Check, ChevronRight, RefreshCw, ShieldCheck, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { api, ApiError, getAdminKey } from "../api";
 import { prepareImage } from "../lib/image";
-import { when } from "../lib/format";
+import { duration, pct, when } from "../lib/format";
 import type { Analysis, Config, Label } from "../types";
 import { ENGINE_NAME, LABELS } from "../types";
+import { PumpResult, Probabilities } from "./AnalysisResult";
+import { EngineName } from "./EngineName";
 import { LabelBadge } from "./LabelBadge";
-import { ResultView } from "./Analyze";
 
 export function DetailModal({ a, config, onClose, onChanged }: { a: Analysis; config: Config; onClose: () => void; onChanged: () => void }) {
   const [cur, setCur] = useState(a);
@@ -38,30 +40,71 @@ export function DetailModal({ a, config, onClose, onChanged }: { a: Analysis; co
   });
 
   return (
-    <div role="dialog" aria-modal="true" aria-label={`Análise ${cur.id}`} className="fixed inset-0 z-30 flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-4" onClick={onClose}>
-      <div className="card max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-b-none sm:rounded-b-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Análise #{cur.id} · {when(cur.created_at)}</h2>
-          <button className="btn btn-ghost" onClick={onClose} aria-label="Fechar">✕</button>
+    <div className="modal-layer" role="dialog" aria-modal="true" aria-label={`Análise ${cur.id}`}>
+      <button className="modal-scrim" onClick={onClose} aria-label="Fechar" />
+      <div className="detail-modal">
+        <div className="modal-head">
+          <div>
+            <span>DETALHES DA ANÁLISE</span>
+            <h2>Análise #{cur.id}</h2>
+            <p>{when(cur.created_at)}</p>
+          </div>
+          <button onClick={onClose} aria-label="Fechar janela"><X size={20} /></button>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <img src={cur.image_url} alt={`Foto da análise ${cur.id}`} className="w-full rounded-xl bg-stone-200 object-contain dark:bg-stone-800" />
-          <div className="space-y-3">
-            <ResultView a={cur} />
-            {cur.human_label && <p className="text-sm">Corrigido por pessoa para <LabelBadge label={cur.human_label} /> ({ENGINE_NAME[cur.engine ?? "esp32"]} disse {cur.classification}).</p>}
+        <div className="modal-body">
+          <div className="modal-image">
+            <img src={cur.image_url} alt={`Foto da análise ${cur.id}`} />
+            <span>{cur.width} × {cur.height} px</span>
+          </div>
+          <div className="modal-results" data-testid="result">
+            <div className="modal-labels">
+              <div>
+                <span>RESULTADO ORIGINAL DO MODELO</span>
+                <LabelBadge label={cur.classification} />
+                <small>Confiança de {pct(cur.confidence)} · {ENGINE_NAME[cur.engine ?? "esp32"]}</small>
+              </div>
+              <ChevronRight size={20} aria-hidden />
+              <div>
+                <span>CLASSIFICAÇÃO FINAL</span>
+                <LabelBadge label={cur.final_label} />
+                <small>{cur.human_label ? "Corrigida por uma pessoa" : "Sem correção humana"}</small>
+              </div>
+            </div>
+            {cur.needs_review && <p className="alert warn">Confiança baixa: peça uma revisão humana antes de agir.</p>}
+            <div className="modal-info-grid">
+              <div><span>Mecanismo</span><strong><EngineName engine={cur.engine} /></strong></div>
+              <div><span>Tempo de inferência</span><strong>{cur.inference_ms != null ? `${cur.inference_ms} ms` : "—"}</strong></div>
+              <div><span>{cur.engine === "server" ? "Tempo total" : "Ida e volta total"}</span><strong>{duration(cur.round_trip_ms)}</strong></div>
+              <div><span>Modelo</span><strong>{cur.model_version ?? "—"}</strong></div>
+            </div>
+            <Probabilities a={cur} />
+            <PumpResult a={cur} />
+            <div className="review-box">
+              <div>
+                <ShieldCheck size={18} aria-hidden />
+                <div>
+                  <h3>Revisão humana</h3>
+                  <p>{getAdminKey() ? "A classificação corrigida prevalece nas estatísticas." : "Requer a chave de administrador, se o servidor tiver uma."}</p>
+                </div>
+              </div>
+              <div className="label-choice" role="group" aria-label="Corrigir classificação">
+                {LABELS.map((l) => (
+                  <button key={l} className={cur.final_label === l && !!cur.human_label ? "active" : ""} aria-pressed={cur.final_label === l && !!cur.human_label} disabled={busy} onClick={() => relabel(l)}>
+                    <span aria-hidden />É {l}
+                  </button>
+                ))}
+              </div>
+              {cur.human_label && <button className="text-button remove-fix" disabled={busy} onClick={() => relabel(null)}>Remover correção</button>}
+            </div>
+            {msg && <p role="alert" className="alert warn">{msg}</p>}
           </div>
         </div>
-        <div className="mt-4 space-y-2 border-t border-stone-200 pt-3 dark:border-stone-800">
-          <p className="text-sm font-medium">Revisão humana {getAdminKey() ? "" : "(requer chave de administrador, se configurada)"}</p>
-          <div className="flex flex-wrap gap-2">
-            {LABELS.map((l) => <button key={l} className="chip" aria-pressed={cur.final_label === l && !!cur.human_label} disabled={busy} onClick={() => relabel(l)}>É {l}</button>)}
-            {cur.human_label && <button className="chip" disabled={busy} onClick={() => relabel(null)}>Remover correção</button>}
+        <div className="modal-actions">
+          <button className="danger-button" disabled={busy} onClick={remove}><Trash2 size={16} aria-hidden /> Apagar</button>
+          <div>
+            <button className="secondary-button" disabled={busy} onClick={reanalyze}><RefreshCw size={16} aria-hidden /> Reanalisar esta foto</button>
+            <button className="primary-button" onClick={onClose}><Check size={16} aria-hidden /> Fechar</button>
           </div>
-          <div className="flex flex-wrap gap-2 pt-1">
-            <button className="btn btn-ghost" disabled={busy} onClick={reanalyze}>↻ Reanalisar esta foto</button>
-            <button className="btn btn-ghost text-red-700 dark:text-red-300" disabled={busy} onClick={remove}>Apagar</button>
-          </div>
-          {msg && <p role="alert" className="text-sm text-amber-800 dark:text-amber-300">{msg}</p>}
         </div>
       </div>
     </div>
