@@ -17,4 +17,4 @@ else
 fi
 SIM=$!; trap 'kill $SIM' EXIT
 cd backend
-ESP32_URL=http://127.0.0.1:8081 ESP32_INPUT_SIZE=$SIZE ESP32_CLASSES=$CLASSES "$ROOT/.venv/bin/python" -m uvicorn main:app --port 8000
+SERVER_MODEL_DIR="${SERVER_MODEL_DIR:-$ROOT/models/server}" ESP32_URL=http://127.0.0.1:8081 ESP32_INPUT_SIZE=$SIZE ESP32_CLASSES=$CLASSES "$ROOT/.venv/bin/python" -m uvicorn main:app --port 8000

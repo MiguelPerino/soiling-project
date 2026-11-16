@@ -14,6 +14,7 @@ if (Test-Path "ai-model/models/current/model.tflite") {
 $sim = Start-Process -PassThru -NoNewWindow .\.venv\Scripts\python -ArgumentList $simArgs
 try {
   Set-Location backend
+  if (-not $env:SERVER_MODEL_DIR) { $env:SERVER_MODEL_DIR = (Resolve-Path "..\models\server").Path }
   $env:ESP32_URL = "http://127.0.0.1:8081"; $env:ESP32_INPUT_SIZE = $size; $env:ESP32_CLASSES = $classes
   ..\.venv\Scripts\python -m uvicorn main:app --port 8000
 } finally { Stop-Process -Id $sim.Id -ErrorAction SilentlyContinue }

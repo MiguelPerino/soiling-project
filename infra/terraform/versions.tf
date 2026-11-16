@@ -1,10 +1,12 @@
 terraform {
   required_version = ">= 1.6"
   required_providers {
-    aws = { source = "hashicorp/aws", version = "~> 5.0" }
+    azurerm = { source = "hashicorp/azurerm", version = "~> 4.0" }
+    random  = { source = "hashicorp/random", version = "~> 3.6" }
   }
 }
 
-provider "aws" {
-  region = var.region
+provider "azurerm" {
+  features {}
+  subscription_id = var.subscription_id   # azurerm 4.x exige; veja com: az account show --query id -o tsv
 }

@@ -15,26 +15,18 @@ A demonstração funciona **sem internet** (Gemini cai no plano B; a recomendaç
 - Firewall do computador: libere a porta 8000 para o celular acessar.
 - Docker Desktop (Windows/macOS) alcança IPs da LAN normalmente; em Linux também (rede bridge com NAT).
 
-## Nuvem (opcional): Terraform na AWS — leia o limite primeiro
-**Um servidor na nuvem não alcança o ESP32 na sua rede local** (IP privado atrás de NAT). Então, na nuvem:
-- `enable_simulator = true` (padrão): sobe junto o simulador do ESP32 (com modelo sintético, a menos que você coloque um modelo em `ai-model/models/current` antes de implantar). Serve para mostrar front, banco, histórico, painel e Gemini.
-- Para usar o ESP32 de verdade a partir da nuvem é preciso uma VPN/túnel (ex.: Tailscale) até o ESP32 e `enable_simulator=false` com `esp32_url`. Não está montado nem testado.
-- Recomendação para a apresentação: **local**. Use a nuvem só se a banca exigir uma URL pública.
+## Nuvem: Terraform na Azure (exigência da disciplina) — leia o limite primeiro
+**Um servidor na nuvem não alcança o ESP32 na sua rede local** (IP privado atrás de NAT). Por isso o plano para a apresentação tem dois ambientes:
+- **Publicado na Azure:** a plateia abre o link, envia fotos e usa o **modelo grande (modo Servidor)**. O modo ESP32 aparece indisponível (`ESP32_URL` vazio).
+- **Local com o ESP32:** `scripts/dev-esp32.sh IP`, para mostrar a placa e o LED/bomba.
 
-### Como usar
-```bash
-cd infra/terraform
-cp terraform.tfvars.example terraform.tfvars     # allowed_cidr = SEU IP /32; repo_url; senhas
-terraform init && terraform plan && terraform apply
-```
-Cria: instância Ubuntu 24.04 (t3.small), Elastic IP, security group (porta 8000 só para `allowed_cidr`, IMDSv2, disco criptografado),
-segredos no SSM Parameter Store (SecureString) lidos no boot, acesso por Session Manager (SSH opcional). O primeiro boot clona o repositório e roda o compose (alguns minutos; log em `/var/log/soiling-bootstrap.log`).
-`terraform destroy` desfaz tudo (apague também o `terraform.tfstate`: ele contém os segredos).
+O front **não** é separado: o mesmo contêiner serve a API e o front compilado (sem CORS e com um deploy só). Detalhes e comandos: `infra/terraform/README.md`.
+Cria: grupo de recursos, registro de imagens (ACR), Container Apps com HTTPS e 1 réplica, e (com `persistent = true`) PostgreSQL gerenciado + Azure Files para as fotos.
+O modelo grande vai dentro da imagem (`models/server/` é copiado no `docker build`).
 
 ### Limites honestos
-- **Terraform não foi executado** aqui (só conferimos a sintaxe HCL com `python-hcl2`). Espere ajustes (nome da AMI, região, quotas).
-- Só HTTP, sem TLS e sem domínio. Para HTTPS, coloque Caddy/nginx na frente (não incluído).
-- `repo_url` precisa ser acessível sem credenciais (repositório público) ou ajustar o `user_data` para um token.
-- Os segredos ficam no state do Terraform: guarde-o em local protegido.
-- Custo: instância + IP + disco, cobrados enquanto existirem. Destrua depois da demonstração.
-- Gemini na nuvem funciona (tem internet); a chave vem do SSM.
+- **Terraform e Docker não foram executados** ao construir o projeto (só a sintaxe HCL foi conferida com `python-hcl2`). Espere ajustes no primeiro `apply`.
+- Contas Azure for Students limitam as regiões e, às vezes, o PostgreSQL: por isso `location` e `persistent` são variáveis.
+- Com `persistent = false` (padrão), banco e fotos ficam no disco do contêiner e somem se ele reiniciar.
+- O site é público: `ADMIN_API_KEY` é obrigatória; fotos de visitantes ficam no sistema.
+- Custo: cobrado enquanto existir; `terraform destroy` depois da apresentação. Segredos ficam no state do Terraform: não versione.

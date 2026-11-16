@@ -1,9 +1,16 @@
-output "url" {
-  value       = "http://${aws_eip.app.public_ip}:8000"
-  description = "Endereço do sistema (só responde ao CIDR permitido). O boot leva alguns minutos."
+output "site_url" {
+  value       = "https://${azurerm_container_app.app.ingress[0].fqdn}"
+  description = "Endereço público do sistema (front + API)."
 }
 
-output "instance_id" {
-  value       = aws_instance.app.id
-  description = "Para acessar sem SSH: aws ssm start-session --target <id>"
+output "acr_login_server" {
+  value = azurerm_container_registry.acr.login_server
+}
+
+output "acr_name" {
+  value = azurerm_container_registry.acr.name
+}
+
+output "resource_group" {
+  value = azurerm_resource_group.rg.name
 }

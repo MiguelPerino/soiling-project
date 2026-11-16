@@ -22,7 +22,7 @@ Exceção decidida em 9/11: **Open‑Meteo só como recomendação de chuva na t
 - `firmware/esp32/` PlatformIO (esp32dev, SEM PSRAM). `src/pump_policy.h` é C++ puro e testado.
 - `ai-model/training/` `prepare_data.py` → `train.py` (Keras → TFLite int8) · `conversion/tflite_to_header.py`
 - `tools/esp32_simulator/` ESP32 de mentira (mesmo protocolo e mesma política). Use para testar sem hardware.
-- `infra/terraform/` AWS opcional · `scripts/` setup/test/dev (sh e ps1)
+- `infra/terraform/` Azure (Container Apps + ACR) · `scripts/` setup/test/dev (sh e ps1)
 
 ## Comandos
 ```bash

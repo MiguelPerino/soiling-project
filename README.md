@@ -28,7 +28,7 @@ O dataset **não** entra no repositório: só o modelo treinado e as imagens nov
 | `ai-model/` | Preparo do dataset Roboflow, treino Keras, exportação TFLite int8 |
 | `backend/app/services/weather.py` | Recomendação de chuva (Open‑Meteo): só informa, nunca aciona a bomba |
 | `tools/esp32_simulator/` | **ESP32 de mentira** com o mesmo protocolo: permite testar e ensaiar sem hardware |
-| `infra/terraform/` | Implantação opcional na AWS (dashboard/histórico; ver limite abaixo) |
+| `infra/terraform/` | Implantação na Azure (Terraform): site público só com o modelo grande; o ESP32 fica local |
 | `docs/` | Documentação (comece por `docs/00_VISAO_GERAL.md`) |
 | `.claude/skills/` | Skills para Claude Code e Codex (`AGENTS.md` é o contexto principal) |
 | `historico/` | Registro do que foi feito antes da mudança de rumo (só documentação) |
@@ -56,7 +56,7 @@ Ou com Docker (PostgreSQL incluso): `cp .env.example .env`, edite, `docker compo
 | Backend, banco (SQLite **e** PostgreSQL 16), protocolo com ESP32 simulado | testado automaticamente: 45 testes em SQLite. PostgreSQL 16 passou antes do modo servidor (10/11) e **não foi reexecutado** depois |
 | **Firmware no ESP32 (12/11)** | **compilado, gravado e rodando numa placa esp32dev**: o modelo soilnet carrega, conecta no Wi‑Fi, responde ao backend, e uma imagem classificada `SEVERO` acendeu o LED azul (GPIO 2) com a regra de bomba. Houve folga de memória (relato da equipe) |
 | Modo servidor (modelo grande ONNX) | testado com um ONNX **sintético** (carga, os dois modos, bomba nunca acionada, modelo ausente, exportação, navegador). Acurácia e latência de uma ResNet real: **não medidas** |
-| Front no navegador (fluxo completo, mobile, tema escuro) | testado com Playwright contra o stack real, usando o simulador |
+| Front no navegador (fluxo completo, mobo mesmo contêiner serve a API e o front compilado (sem CORS e com um deploy só). Detalhes e comandos: `infra/terraform/README.md`.o mesmo contêiner serve a API e o front compilado (sem CORS e com um deploy só). Detalhes e comandos: `infra/terraform/README.md`.ile, tema escuro) | testado com Playwright contra o stack real, usando o simulador |
 | Pipeline de treino → TFLite int8 → simulador | testado de ponta a ponta com imagens **sintéticas** (prova o encanamento, não a acurácia) |
 | Política de segurança da bomba (C++) | testada no computador |
 | **Acurácia com fotos reais na placa** | **não medida por nós**: só as métricas de treino da equipe. Limiar 0,41 (ESP32) vs. 0,60 (backend marca baixa confiança) ainda a alinhar |

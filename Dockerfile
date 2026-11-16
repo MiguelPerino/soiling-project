@@ -13,7 +13,10 @@ COPY backend/requirements.txt .
 RUN pip install -r requirements.txt
 COPY backend/ .
 COPY --from=front /f/dist /app/frontend_dist
-ENV FRONTEND_DIR=/app/frontend_dist STORAGE_DIR=/data/images
+# Modelo grande (ONNX): vai DENTRO da imagem para a nuvem (models/server/ não é versionado: copie os 3 arquivos antes do build).
+# No docker compose local a pasta é montada por cima, então trocar o modelo lá não exige rebuild.
+COPY models/server /models/server
+ENV FRONTEND_DIR=/app/frontend_dist STORAGE_DIR=/data/images SERVER_MODEL_DIR=/models/server
 RUN useradd -r -u 10001 app && mkdir -p /data/images && chown -R app /data
 USER app
 EXPOSE 8000

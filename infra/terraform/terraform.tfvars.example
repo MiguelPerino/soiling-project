@@ -1,10 +1,9 @@
-# Copie para terraform.tfvars (no .gitignore) e preencha. NÃO suba o terraform.tfvars para o Git.
-region            = "sa-east-1"
-allowed_cidr      = "203.0.113.10/32"                 # o SEU IP público (https://ifconfig.me)
-repo_url          = "https://github.com/SEU-USUARIO/soiling-detection.git"
-repo_ref          = "main"
-admin_api_key     = "troque"
-postgres_password = "troque"
-# gemini_api_key  = ""
-# gemini_model    = ""
-enable_simulator  = true
+# cp terraform.tfvars.example terraform.tfvars   (o .tfvars real está no .gitignore: tem senha)
+subscription_id = "00000000-0000-0000-0000-000000000000"   # az account show --query id -o tsv
+location        = "brazilsouth"                            # troque se a conta de estudante bloquear a região
+admin_api_key   = "troque-por-uma-chave-longa"             # >= 12 caracteres; é a chave que você digita na tela
+image_tag       = "v1"
+persistent      = false     # true = PostgreSQL + Azure Files (dados sobrevivem)
+min_replicas    = 1
+# gemini_api_key = ""
+# gemini_model   = ""
