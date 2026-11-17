@@ -213,6 +213,10 @@ resource "azurerm_container_app" "app" {
         value = tostring(var.server_input_size)
       }
       env {
+        name  = "SERVER_REVIEW_UNTIL"
+        value = tostring(var.server_review_until)
+      }
+      env {
         name        = "ADMIN_API_KEY"
         secret_name = "admin-api-key"
       }

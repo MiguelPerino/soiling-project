@@ -1,10 +1,10 @@
 """Exporta as fotos (já revisadas por pessoas, em geral) para retreinar os modelos.
 
-O zip tem uma pasta por classe (LIMPO/, MODERADO/, SEVERO/) com `<id>.jpg` e um `labels.csv`. Esse formato é o que
+O zip tem uma pasta por classe (LIMPO/ = não precisa limpar, SEVERO/ = precisa limpar) com `<id>.jpg` e um `labels.csv`. Esse formato é o que
 `ai-model/training/prepare_data.py --extra <pasta>` já lê. As fotos ficam no tamanho em que foram guardadas
 (até UPLOAD_MAX_SIDE px); cada treino as redimensiona para o seu tamanho de entrada. O dataset original NÃO faz parte do zip.
 
-Se o modelo do ESP32 usar só LIMPO e SEVERO, ignore (ou mapeie) a pasta MODERADO ao treinar esse modelo.
+Para o notebook do modelo grande, LIMPO/ corresponde a NaoLimpar e SEVERO/ a Limpar.
 """
 from __future__ import annotations
 

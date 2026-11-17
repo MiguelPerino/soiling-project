@@ -1,5 +1,6 @@
-export type Label = "LIMPO" | "MODERADO" | "SEVERO";
-export const LABELS: Label[] = ["LIMPO", "MODERADO", "SEVERO"];
+/** Duas classes. Códigos da API: LIMPO = "Não precisa limpar", SEVERO = "Precisa limpar" (textos em lib/format.ts). */
+export type Label = "LIMPO" | "SEVERO";
+export const LABELS: Label[] = ["LIMPO", "SEVERO"];
 
 /** Quem classificou: o ESP32 (decide a bomba) ou o modelo grande no servidor (nunca aciona a bomba). */
 export type Engine = "esp32" | "server";
@@ -36,10 +37,15 @@ export interface EngineInfo {
   aciona_bomba: boolean;
   versao?: string | null;
   motivo: string | null;
+  /** Só no modo servidor: "Precisa limpar" quando P(precisa limpar) >= limiar. */
+  limiar?: number | null;
+  /** Só no modo servidor: limiar <= P(precisa limpar) < revisao_ate => resultado marcado para revisão. */
+  revisao_ate?: number | null;
 }
 
 export interface Config {
   engines: Record<Engine, EngineInfo>;
+  rotulos: Record<Label, string>;
   upload_max_side: number;
   jpeg_quality: number;
   max_upload_mb: number;

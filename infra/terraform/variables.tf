@@ -75,6 +75,12 @@ variable "server_input_size" {
   description = "0 = usa o input_size do model_card.json do modelo grande."
 }
 
+variable "server_review_until" {
+  type        = number
+  default     = 0.5
+  description = "Topo da faixa de dúvida do modelo grande (PROVISÓRIO): limiar do card <= P(precisa limpar) < isto => revisão humana."
+}
+
 variable "gemini_api_key" {
   type      = string
   default   = ""

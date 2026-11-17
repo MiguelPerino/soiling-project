@@ -1,7 +1,8 @@
 """Fluxo de uma análise, em um de dois modos (`engine`):
 
   esp32   a foto vira JPEG do tamanho do modelo do ESP32 -> o ESP32 classifica e decide a bomba (como sempre).
-  server  a foto é classificada aqui, pelo modelo grande (ONNX), no tamanho que ele espera. NÃO aciona a bomba.
+  server  a foto é classificada aqui, pelo modelo grande (ONNX, binário), no tamanho que ele espera. NÃO aciona a bomba.
+          "Revisar" vem da faixa de dúvida do modelo (limiar <= P(precisa limpar) < SERVER_REVIEW_UNTIL), não de LOW_CONFIDENCE_THRESHOLD.
 
 Nos dois casos o arquivo guardado é a foto normalizada (orientação corrigida, no máximo `max_side` px de lado):
 é ela que serve para retreinar qualquer um dos modelos. O tamanho de entrada de cada modelo é configuração
@@ -83,7 +84,7 @@ def analyze(data: bytes, filename: str, *, engine: str = "esp32", size: int, max
         pred = server_model.predict(norm.image)
         total_ms = int((time.perf_counter() - t0) * 1000)
         fields = dict(classification=pred.label.value, confidence=pred.confidence, probs=pred.probs,
-                      low_confidence=pred.confidence < low_conf, cleaning_activated=False, pump_duration_ms=0,
+                      low_confidence=pred.low_confidence, cleaning_activated=False, pump_duration_ms=0,
                       pump_reason=SERVER_PUMP_REASON, dirt_level=None, model_version=pred.model_version,
                       inference_ms=int(pred.latency_ms), round_trip_ms=total_ms)
     else:

@@ -1,56 +1,88 @@
-# 12 · Modelo grande no servidor (ONNX)
+# 12 · Modelo grande no servidor (ONNX, binário)
 
-Além do modelo pequeno do ESP32, o backend pode rodar um **modelo grande** (ex.: ResNet) para uma análise mais robusta.
-São **dois modos**, escolhidos no front para cada foto. Não existe modo "comparar".
+Além do modelo pequeno do ESP32, o backend pode rodar um **modelo grande** (hoje uma ResNet50) para uma análise mais robusta.
+São **dois modos**, escolhidos no front para cada foto. Não existe modo "comparar". Os dois são **binários**:
+`LIMPO` = "Não precisa limpar" e `SEVERO` = "Precisa limpar".
 
 | | `esp32` | `server` |
 | --- | --- | --- |
-| Onde roda | no ESP32 (Wi‑Fi local) | no backend (localhost), ONNX Runtime na CPU |
+| Onde roda | no ESP32 (Wi‑Fi local) | no backend, ONNX Runtime na CPU |
 | Aciona a bomba | sim, pela política do firmware | **nunca** |
-| Classes | `ESP32_CLASSES` (padrão `LIMPO,SEVERO`, do soilnet v1; pode ser as 3) | as do `labels.json` (3: LIMPO, MODERADO, SEVERO) |
-| Tamanho de entrada | `ESP32_INPUT_SIZE` (padrão 112, do soilnet v1) | `SERVER_INPUT_SIZE`, ou o `input_size` do `model_card.json` |
+| Classes | `ESP32_CLASSES` = `LIMPO,SEVERO` (soilnet v1: NAOLIMPAR/LIMPAR) | `labels.json` com 2 nomes + `classe_positiva` do card (NaoLimpar/Limpar) |
+| Decisão | P(LIMPAR) ≥ 0,41 (firmware) | P(Limpar) ≥ `decisao.limiar` do card (hoje **0,19**) |
+| "Revisar" | confiança < `LOW_CONFIDENCE_THRESHOLD` | faixa de dúvida: limiar ≤ P(Limpar) < `SERVER_REVIEW_UNTIL` (0,50) |
+| Tamanho de entrada | `ESP32_INPUT_SIZE` (112) | `SERVER_INPUT_SIZE`, ou `preprocessamento.img_size` do card (224) |
 
-O dataset **não** faz parte do repositório: só o modelo já treinado (pesos) entra, e as fotos novas voltam pelo sistema (exportação abaixo).
+O dataset **não** faz parte do repositório, e os pesos também não (`models/server/` está no `.gitignore`: o ONNX tem 94 MB).
+As fotos novas voltam pelo sistema (exportação abaixo).
 
-## O que a equipe entrega: uma pasta com 3 arquivos
-Coloque em `models/server/` (ou aponte `SERVER_MODEL_DIR`). Em Docker, essa pasta é montada em `/models/server`.
+## Modelo atual
+`resnet50-224-20261116` (notebook `treino_placas_resnet_tratado.ipynb` do time). O card informa, sobre 191 fotos de teste do notebook:
+acurácia 95,3% no limiar 0,19 (95,8% no corte 0,5), AUC 0,99, 7 limpas classificadas "Precisa limpar" e 2 sujas classificadas
+"Não precisa limpar". **Esses números são do notebook; este sistema não os mediu** (não temos as fotos de teste aqui).
+
+## O que a equipe entrega: os 3 arquivos que o notebook gera
+Coloque em `models/server/` na raiz do repositório (ou aponte `SERVER_MODEL_DIR`). Em Docker essa pasta vai para `/models/server`.
 
 | Arquivo | Conteúdo |
 | --- | --- |
-| `model.onnx` | entrada `(N, 3, H, W)` float32 (NCHW, RGB); saída `(N, K)` com **logits** (ou probabilidades, se o card disser `"output": "probs"`) |
-| `labels.json` | classes na ordem das saídas, ex.: `["LIMPO","MODERADO","SEVERO"]`. Precisa incluir LIMPO e SEVERO; K tem que ser igual ao número de classes |
-| `model_card.json` | `{"version": "resnet18-v1", "input_size": 224, "mean": [0.485,0.456,0.406], "std": [0.229,0.224,0.225], "output": "logits"}` |
+| `model.onnx` | **2 saídas**. Entrada NHWC `(N,H,W,3)` ou NCHW `(N,3,H,W)`, float32 RGB. O layout é lido do próprio ONNX (ou de `onnx.input.layout`) |
+| `labels.json` | os 2 nomes na ordem das saídas: `["NaoLimpar","Limpar"]` (ou já `["LIMPO","SEVERO"]`) |
+| `model_card.json` | o card do notebook. Campos lidos abaixo |
 
-- `version` aparece em cada análise (rastreabilidade). `mean`/`std` e o tamanho vêm do card para treino e inferência não divergirem
-  (se faltarem, usa-se ImageNet e 224).
+Campos do `model_card.json` que o backend usa (`backend/app/services/server_model.py`):
+
+| Campo | Para quê | Se faltar |
+| --- | --- | --- |
+| `versao` (ou `version`) | aparece em cada análise | "desconhecida" |
+| `classe_positiva` | qual nome do `labels.json` significa "Precisa limpar" (vira `SEVERO`; o outro vira `LIMPO`) | obrigatório, salvo se `labels.json` já for `LIMPO`/`SEVERO` |
+| `decisao.limiar` | P(positiva) ≥ limiar ⇒ "Precisa limpar" | 0,5 |
+| `decisao.revisao_ate` (opcional) | topo da faixa de dúvida; manda sobre `SERVER_REVIEW_UNTIL` | `SERVER_REVIEW_UNTIL` |
+| `onnx.input.faixa` | `[0,255]` ⇒ pixels crus, a normalização vive dentro do ONNX | 0..1 normalizado com `mean`/`std` (ImageNet) |
+| `onnx.output.name` = `probs` (ou `output: "probs"`) | a saída já é probabilidade; **não** aplica softmax de novo | aplica softmax (logits) |
+| `preprocessamento.img_size` | lado da entrada | `input_size`, depois o tamanho fixo do ONNX, depois 224 |
+
+Regras (iguais às do ESP32 binário):
+- **Decisão por limiar, não por maior probabilidade.** Com limiar 0,19, P(Limpar) = 0,30 já é "Precisa limpar".
+- `confidence` = probabilidade da classe escolhida (não é percentual de sujeira).
+- **Faixa de dúvida**: limiar ≤ P(Limpar) < `SERVER_REVIEW_UNTIL` ⇒ "Precisa limpar" com `low_confidence=true` e ação "revisar".
+  O valor 0,50 é **provisório**: escolha-o medindo P(Limpar) foto a foto no conjunto de teste.
+- `/api/config` expõe `engines.server.limiar` e `revisao_ate`; o front marca o limiar na barra de probabilidade.
+- O backend recusa o modelo (modo servidor indisponível, com o motivo) se o ONNX não tiver 2 saídas, se faltar `classe_positiva`
+  ou se o limiar estiver fora de (0, 1). O modo ESP32 segue normal.
 - Trocar de modelo = trocar os 3 arquivos e reiniciar o backend. Nenhum código muda.
-- Sem a pasta (ou com arquivo inválido) o backend **sobe normalmente**: o modo servidor aparece como indisponível, com o motivo, e o modo ESP32 segue.
-- Exportar de PyTorch (exemplo): `torch.onnx.export(model.eval(), torch.randn(1,3,224,224), "model.onnx", input_names=["input"], output_names=["logits"], dynamic_axes={"input": {0: "batch"}, "logits": {0: "batch"}})`.
+
+### Pendente: enquadramento do notebook
+O card diz "use o `preprocess.py` do notebook de tratamento (enquadramento + 224×224 RGB)". **O backend ainda não faz esse
+enquadramento**: ele só estica a foto para 224×224 (sem recorte). Enquanto o `preprocess.py` não for portado, a foto que chega ao
+modelo pode diferir da do treino, e a acurácia real pode ficar abaixo da do notebook.
 
 ## Variáveis (ver `.env.example`)
 | Variável | Padrão | Para quê |
 | --- | --- | --- |
 | `ESP32_INPUT_SIZE` | 112 | lado da foto enviada ao ESP32 (igual ao treino/firmware). `INPUT_SIZE` ainda é aceito |
-| `ESP32_CLASSES` | `LIMPO,SEVERO` | classes do modelo do ESP32. Se o ESP32 devolver outra, a API responde 502 e não grava |
+| `ESP32_CLASSES` | `LIMPO,SEVERO` | classes do modelo do ESP32 (só estas duas são aceitas). Se o ESP32 devolver outra, a API responde 502 e não grava |
 | `SERVER_MODEL_DIR` | `models/server` | pasta do modelo grande |
 | `SERVER_INPUT_SIZE` | 0 | lado da entrada do modelo grande; 0 = usar o card |
+| `SERVER_REVIEW_UNTIL` | 0.5 | topo da faixa de dúvida (provisório) |
 | `UPLOAD_MAX_SIDE` | 512 | maior lado da foto que o front envia e que fica guardada |
 
 O front envia uma foto de até `UPLOAD_MAX_SIDE` px. O backend guarda essa foto e gera, a partir dela, a versão de cada modelo
-(estica para quadrado, como no treino). Por isso os tamanhos de entrada podem mudar sem mexer no front.
+(estica para quadrado). Por isso os tamanhos de entrada podem mudar sem mexer no front.
 
 ## Retreino com as fotos novas
-No Histórico, corrija o rótulo das fotos (precisa da chave de administrador, se configurada) e use **Exportar fotos revisadas**
-(`GET /api/export/training.zip`). O zip tem uma pasta por classe e um `labels.csv`, no formato que
-`ai-model/training/prepare_data.py --extra <pasta>` já lê. As fotos saem no tamanho guardado; cada treino as redimensiona.
-Se o ESP32 usar só 2 classes, ignore ou mapeie a pasta `MODERADO` ao treinar o modelo dele.
+No Histórico, corrija o rótulo das fotos ("Não precisa limpar" / "Precisa limpar"; precisa da chave de administrador, se
+configurada) e use **Exportar fotos revisadas** (`GET /api/export/training.zip`). O zip tem as pastas `LIMPO/` (= NaoLimpar) e
+`SEVERO/` (= Limpar) e um `labels.csv`. As fotos saem no tamanho guardado; cada treino as redimensiona.
 
-## ESP32 com 2 classes (já é o caso do soilnet v1)
-Backend, simulador (`tflite_engine.py`) e firmware (`config.h`, `decision.h`) aceitam o modelo binário. Veja `docs/04_FIRMWARE_ESP32.md`, seção "Modelo soilnet v1".
-**Ainda assumem 3 classes** (só importa se o time quiser treinar o ESP32 com este repositório em vez do notebook dele):
-`ai-model/training/labels.py`, `train.py` e `prepare_data.py`, e o simulador com modelo ONNX (`classifier.py`, usado só no modelo sintético de teste).
+## Fora do escopo desta mudança
+`ai-model/training/` (pipeline Keras → TFLite do ESP32) ainda assume 3 classes e não foi alterado: o modelo do ESP32 vem do
+notebook do time. O firmware, o protocolo e `tflite_engine.py` (simulador com o soilnet real) também não mudaram.
 
 ## O que foi e o que não foi testado
-Testado automaticamente: carga do ONNX, os dois modos, bomba nunca acionada no modo servidor, modelo ausente/inválido, classes do ESP32,
-tamanho configurável, exportação, migração de banco antigo, e o fluxo no navegador. O modelo usado nos testes é **sintético** (média de cor),
-não uma ResNet. **Não medidos:** acurácia e latência de uma ResNet real, e a comparação com o modelo do ESP32.
+Testado automaticamente (`backend/tests/test_server_engine.py`), com um ONNX **sintético no mesmo formato do ResNet** (NHWC 0..255,
+saída `probs`, NaoLimpar/Limpar, limiar 0,19): carga, limiar, faixa de dúvida, mapeamento de nomes e ordem invertida, layout NCHW
+com logits, modelo ausente/inválido (3 saídas, sem `classe_positiva`, limiar inválido), os dois modos, bomba nunca acionada,
+correção humana só com 2 classes, exportação e linha antiga com MODERADO no banco.
+Com a **ResNet50 real** (`resnet50-224-20261116`): carrega, roda (≈20–25 ms por foto na CPU deste ambiente) e aparece no navegador,
+mas só com imagens sintéticas. **Não medidos:** acurácia em fotos reais, efeito de não fazer o enquadramento, latência no Azure.

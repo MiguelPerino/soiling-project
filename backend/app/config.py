@@ -16,7 +16,7 @@ class Settings:
     esp32_key: str = ""                          # segredo compartilhado opcional (cabeçalho X-Device-Key)
     esp32_timeout_s: float = 30.0
     input_size: int = 112                        # lado da imagem do modelo do ESP32 (ESP32_INPUT_SIZE; igual ao do treino/firmware). soilnet v1 = 112
-    esp32_classes: tuple[str, ...] = ("LIMPO", "SEVERO")   # ESP32_CLASSES; soilnet v1 é binário (NAOLIMPAR->LIMPO, LIMPAR->SEVERO). 3 classes: "LIMPO,MODERADO,SEVERO"
+    esp32_classes: tuple[str, ...] = ("LIMPO", "SEVERO")   # ESP32_CLASSES; soilnet v1 é binário (NAOLIMPAR->LIMPO, LIMPAR->SEVERO)
     jpeg_quality: int = 85
     low_confidence_threshold: float = 0.60
     admin_api_key: str = ""                      # vazio = sem proteção (só desenvolvimento local)
@@ -26,6 +26,7 @@ class Settings:
     cors_origins: tuple[str, ...] = field(default_factory=tuple)
     server_model_dir: str = "models/server"     # pasta do modelo grande (ONNX), opcional; veja docs/12_MODELO_NO_SERVIDOR.md
     server_input_size: int = 0                   # SERVER_INPUT_SIZE: lado da entrada do modelo grande; 0 = usar o model_card.json
+    server_review_until: float = 0.5             # SERVER_REVIEW_UNTIL (PROVISÓRIO): limiar <= P(precisa limpar) < isto => "revisar"
     upload_max_side: int = 512                   # o front reduz a foto para no máximo isto; o backend gera o tamanho de cada modelo
     weather_enabled: bool = True                 # recomendação de chuva (Open-Meteo); só informa, nunca aciona a bomba
     panel_lat: float = -23.3103                  # Londrina-PR (provisório: troque pela posição real do painel)
@@ -59,6 +60,7 @@ class Settings:
             cors_origins=tuple(o.strip() for o in e.get("CORS_ORIGINS", "").split(",") if o.strip()),
             server_model_dir=e.get("SERVER_MODEL_DIR", "models/server"),
             server_input_size=int(e.get("SERVER_INPUT_SIZE", "0")),
+            server_review_until=float(e.get("SERVER_REVIEW_UNTIL", "0.5")),
             upload_max_side=int(e.get("UPLOAD_MAX_SIDE", "512")),
             weather_enabled=e.get("WEATHER_ENABLED", "1").strip().lower() in {"1", "true", "yes", "sim"},
             panel_lat=float(e.get("PANEL_LAT", "-23.3103")),

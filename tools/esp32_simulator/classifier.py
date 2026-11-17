@@ -1,8 +1,8 @@
 """Inferência com ONNX Runtime: leve, sem PyTorch, roda no contêiner da API.
 
 Um "modelo" é uma pasta (padrão models/current/) com três arquivos gerados pelo treino:
-    model.onnx        entrada "input" (N,3,H,W) float32; saída "logits" (N,3)
-    labels.json       ["LIMPO","MODERADO","SEVERO"], na ordem das saídas
+    model.onnx        entrada "input" (N,3,H,W) float32; saída "logits" (N,2)
+    labels.json       ["LIMPO","SEVERO"], na ordem das saídas
     model_card.json   versão, arquitetura, tamanho de entrada, média/desvio, métricas, limiar de confiança
 
 O pré-processamento lê tudo do model_card.json, para treino e inferência nunca divergirem.
@@ -18,7 +18,7 @@ from pathlib import Path
 import numpy as np
 from PIL import Image, ImageOps
 
-LABELS = ("LIMPO", "MODERADO", "SEVERO")      # ordem das saídas do modelo (igual a backend/app/labels.py)
+LABELS = ("LIMPO", "SEVERO")      # ordem das saídas do modelo (igual a backend/app/labels.py)
 
 DEFAULT_MEAN = (0.485, 0.456, 0.406)
 DEFAULT_STD = (0.229, 0.224, 0.225)
@@ -102,7 +102,7 @@ class Classifier:
         session = ort.InferenceSession(str(onnx_path), providers=["CPUExecutionProvider"])
         out_dim = session.get_outputs()[0].shape[-1]
         if out_dim != len(LABELS):
-            raise ValueError(f"o modelo tem {out_dim} saídas; esperado {len(LABELS)} (LIMPO, MODERADO, SEVERO)")
+            raise ValueError(f"o modelo tem {out_dim} saídas; esperado {len(LABELS)} (LIMPO, SEVERO)")
         return cls(session, card, str(d))
 
     def predict_image(self, img: Image.Image) -> Prediction:

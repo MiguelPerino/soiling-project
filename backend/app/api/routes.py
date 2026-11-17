@@ -18,7 +18,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.config import Settings
 from app.database.repository import Repository
-from app.labels import Label, suggested_action
+from app.labels import LABEL_TEXT, LABELS, Label, suggested_action
 from app.schemas.analysis import AskIn, RelabelIn
 from app.services.analysis import InvalidImage, analyze
 from app.services.assistant.gemini import GeminiClient
@@ -35,7 +35,10 @@ log = logging.getLogger("soiling")
 
 def _public(a: dict) -> dict:
     a = dict(a)
-    a["acao_sugerida"] = suggested_action(Label(a["final_label"]), bool(a["needs_review"]))
+    try:
+        a["acao_sugerida"] = suggested_action(Label(a["final_label"]), bool(a["needs_review"]))
+    except ValueError:                       # linha antiga com uma classe que não existe mais (ex.: MODERADO): pede revisão
+        a["acao_sugerida"] = "revisar"
     return a
 
 
@@ -53,7 +56,7 @@ def create_app(settings: Settings | None = None, *, repo: Repository | None = No
         if server_model is not None:
             app.state.server_model, app.state.server_error = server_model, None
         else:
-            app.state.server_model, app.state.server_error = try_load(cfg.server_model_dir, cfg.server_input_size)
+            app.state.server_model, app.state.server_error = try_load(cfg.server_model_dir, cfg.server_input_size, cfg.server_review_until)
             if app.state.server_error:
                 log.info("modelo do servidor indisponível (opcional): %s", app.state.server_error)
         client = GeminiClient(cfg.gemini_api_key, cfg.gemini_model) if cfg.gemini_enabled else None
@@ -65,7 +68,7 @@ def create_app(settings: Settings | None = None, *, repo: Repository | None = No
             app.state.repo.dispose()
 
     app = FastAPI(title="Soiling Detection", version="1.0.0", lifespan=lifespan,
-                  description="Classifica sujeira em painéis solares. Dois modos: ESP32 (classifica e decide a bomba) e servidor (modelo grande ONNX, sem bomba).")
+                  description="Diz se o painel solar precisa ou não de limpeza (2 classes). Dois modos: ESP32 (classifica e decide a bomba) e servidor (modelo grande ONNX, sem bomba).")
     if cfg.cors_origins:
         app.add_middleware(CORSMiddleware, allow_origins=list(cfg.cors_origins), allow_methods=["*"], allow_headers=["*"])
 
@@ -99,9 +102,10 @@ def create_app(settings: Settings | None = None, *, repo: Repository | None = No
                       "motivo": None if request.app.state.esp32.configured else "ESP32_URL não definido"},
             "server": {"disponivel": sm is not None, "classes": sm.info()["classes"] if sm else None,
                        "input_size": sm.size if sm else (cfg.server_input_size or None), "aciona_bomba": False,
-                       "versao": sm.version if sm else None, "motivo": request.app.state.server_error},
+                       "versao": sm.version if sm else None, "motivo": request.app.state.server_error,
+                       "limiar": sm.threshold if sm else None, "revisao_ate": sm.review_until if sm else None},
         }
-        return {"engines": engines, "upload_max_side": cfg.upload_max_side, "jpeg_quality": cfg.jpeg_quality,
+        return {"engines": engines, "rotulos": {l.value: LABEL_TEXT[l] for l in LABELS}, "upload_max_side": cfg.upload_max_side, "jpeg_quality": cfg.jpeg_quality,
                 "max_upload_mb": cfg.max_upload_mb, "low_confidence_threshold": cfg.low_confidence_threshold,
                 "weather": cfg.weather_enabled, "ia_gemini": request.app.state.assistant.enabled,
                 "admin_protegido": bool(cfg.admin_api_key)}
@@ -176,7 +180,7 @@ def create_app(settings: Settings | None = None, *, repo: Repository | None = No
         request.app.state.store.delete(rel)
 
     @app.get("/api/export/training.zip", tags=["análises"], dependencies=[Admin],
-             summary="Fotos revisadas em pastas por classe (LIMPO/MODERADO/SEVERO) + labels.csv, para retreinar")
+             summary="Fotos revisadas em pastas por classe (LIMPO/SEVERO) + labels.csv, para retreinar")
     def export_training(request: Request, repo_: R, only_reviewed: bool = True,
                         engine: Literal["esp32", "server"] | None = None):
         rows = [r for r in repo_.export_rows(only_reviewed) if engine is None or r["engine"] == engine]

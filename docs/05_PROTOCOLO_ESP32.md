@@ -16,13 +16,13 @@ Corpo: JPEG **exatamente `INPUT_SIZE×INPUT_SIZE`**, ≤ 32 KB. `pump=0` proíbe
 Resposta 200:
 ```json
 {"classification":"SEVERO","confidence":0.9412,
- "probs":{"LIMPO":0.01,"MODERADO":0.05,"SEVERO":0.94},
+ "probs":{"LIMPO":0.06,"SEVERO":0.94},
  "cleaning_activated":true,"pump_duration_ms":5000,"reason":"SEVERO com confianca suficiente",
  "inference_ms":812,"model_version":"soilnet-112-20261110"}
 ```
 | Campo | Obrigatório | Regra (o backend valida; fora disto vira 502) |
 | --- | --- | --- |
-| `classification` | sim | `LIMPO`, `MODERADO` ou `SEVERO` |
+| `classification` | sim | `LIMPO` ou `SEVERO` (o backend recusa qualquer outra com 502) |
 | `confidence` | sim | 0 a 1 |
 | `probs` | não | por classe |
 | `cleaning_activated` | não (padrão false) | a bomba foi ligada |

@@ -1,18 +1,18 @@
 # 00 · Visão geral
 
 ## Objetivo
-Identificar o nível de sujeira de um painel solar a partir de uma fotografia e, quando necessário, acionar uma pequena bomba de
+Dizer, a partir de uma fotografia, se um painel solar precisa ou não de limpeza e, quando necessário, acionar uma pequena bomba de
 água para limpar. É uma **demonstração acadêmica funcional**, não um sistema industrial.
 
 ## Classes
-| Classe | Significado (suposição da equipe) | Ação |
-| --- | --- | --- |
-| `LIMPO` | painel sem sujeira relevante | nenhuma |
-| `MODERADO` | poeira visível | sugerir limpeza (o sistema **não** aciona a bomba) |
-| `SEVERO` | sujeira pesada | acionar a bomba, se a confiança ≥ 0,60 |
+São **duas classes**. O código vai na API, no banco e no protocolo do ESP32; o texto é o que a tela mostra.
 
-Mapeamento do dataset Roboflow: `Clean→LIMPO`, `Dusty→MODERADO`, `Soiled→SEVERO`. **É uma suposição**: confira exemplos de
-cada classe antes de treinar (`02_DATASET_E_TREINO.md`).
+| Código | Na tela | Nos modelos | Ação |
+| --- | --- | --- | --- |
+| `LIMPO` | Não precisa limpar | `NaoLimpar` / `NAOLIMPAR` | nenhuma |
+| `SEVERO` | Precisa limpar | `Limpar` / `LIMPAR` (classe positiva) | ESP32: acionar a bomba se a confiança ≥ limiar. Servidor: só informa |
+
+Os dois modelos decidem por **limiar** sobre P(Limpar), não pela classe de maior probabilidade (ESP32: 0,41; servidor: 0,19).
 
 `confidence` (0–1) é o quanto a rede "tem certeza" da classe. **Não é percentual de sujeira.** O modelo não mede quantidade de sujeira.
 

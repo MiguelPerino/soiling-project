@@ -4,7 +4,7 @@ description: Contexto essencial do Soiling Detection (escopo, arquitetura, o que
 ---
 # Soiling Detection — contexto
 
-**Escopo:** foto de painel solar → `LIMPO` / `MODERADO` / `SEVERO`. SEVERO com confiança ≥ 0,60 aciona bomba de água. Só isso.
+**Escopo:** foto de painel solar → `LIMPO` ("Não precisa limpar") / `SEVERO` ("Precisa limpar"). Só duas classes. SEVERO com confiança ≥ limiar aciona bomba de água (só no ESP32). Só isso.
 
 **Arquitetura:** front React → backend FastAPI → ESP32 (HTTP local). **A rede neural roda no ESP32** (TFLite int8, entrada 112×112 no soilnet v1). O backend
 encaminha a foto, valida a resposta e grava arquivo + linha em `analyses` (PostgreSQL). Gemini (opcional) resume e busca.

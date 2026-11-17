@@ -8,7 +8,7 @@ from app.services.assistant.service import Assistant
 from app.labels import Label
 
 NOW = datetime(2026, 11, 5, 15, 0, tzinfo=timezone.utc)
-STATS = {"total": 10, "por_rotulo": {"LIMPO": 5, "MODERADO": 3, "SEVERO": 2}, "para_revisao": 1, "limpezas_acionadas": 4}
+STATS = {"total": 10, "por_rotulo": {"LIMPO": 8, "SEVERO": 2}, "para_revisao": 1, "limpezas_acionadas": 4}
 
 
 class Fake:
@@ -27,6 +27,18 @@ class Fake:
 def test_rules():
     f = rule_based_filter("mostre as fotos sujas de hoje para revisar", NOW)
     assert f.labels == [Label.SEVERO] and f.since and f.needs_review
+
+
+def test_rules_two_classes():
+    assert rule_based_filter("quais painéis precisam limpar?", NOW).labels == [Label.SEVERO]
+    assert rule_based_filter("quais não precisam de limpeza", NOW).labels == [Label.LIMPO]
+    assert rule_based_filter("fotos limpas e sujas", NOW).labels == [Label.LIMPO, Label.SEVERO]
+    assert rule_based_filter("painéis empoeirados", NOW).labels == [Label.SEVERO]
+
+
+def test_deterministic_summary_uses_two_classes():
+    text, src = Assistant(None).summarize("q", SearchFilter(labels=[Label.SEVERO]), 2, STATS)
+    assert src == "regras" and "8 não precisam de limpeza e 2 precisam de limpeza" in text and "precisa limpar" in text
 
 
 def test_interpret_gemini_and_fallback():

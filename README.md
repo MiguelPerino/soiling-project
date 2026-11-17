@@ -1,15 +1,16 @@
 # Soiling Detection
 
-Protótipo que **classifica o nível de sujeira de um painel solar a partir de uma foto** (`LIMPO`, `MODERADO` ou `SEVERO`)
-e, se for `SEVERO` com confiança suficiente, **aciona uma pequena bomba de água** para limpar.
+Protótipo que **diz, a partir de uma foto, se um painel solar precisa ou não de limpeza**. São duas classes:
+**"Não precisa limpar"** (código `LIMPO`) e **"Precisa limpar"** (código `SEVERO`). Se for `SEVERO` com confiança suficiente,
+o ESP32 **aciona uma pequena bomba de água** para limpar.
 
 Há **dois modos de análise**, escolhidos no front a cada envio (não existe modo "comparar"):
 - **ESP32, na hora:** o backend redimensiona a foto e manda ao ESP32 pelo Wi‑Fi; a rede neural roda **no ESP32**, que também decide a bomba.
-- **Servidor:** um modelo grande opcional (ONNX, ex.: ResNet, 3 classes) roda no backend. **Nunca aciona a bomba.**
+- **Servidor:** um modelo grande opcional (ONNX; hoje ResNet50 `resnet50-224-20261116`, 2 classes, limiar 0,19) roda no backend. **Nunca aciona a bomba.**
 
 ```
 Celular/PC (React) ──foto──▶ Backend (FastAPI) ──JPEG 112×112──▶ ESP32 (TFLite int8, 2 classes) ──▶ bomba
-      ▲                        │  ONNX Runtime (modo servidor, 3 classes, sem bomba)
+      ▲                        │  ONNX Runtime (modo servidor, 2 classes, sem bomba)
       └──── resultado ─────────┴──── grava arquivo + linha no banco (PostgreSQL; SQLite em dev)
                                          ▲
                       Gemini (opcional): resumos e busca em português
@@ -45,7 +46,8 @@ Ou com Docker (PostgreSQL incluso): `cp .env.example .env`, edite, `docker compo
 - O `dev.sh` usa o **modelo real soilnet** no simulador quando `ai-model/models/current/` existe; sem ele, cai num modelo sintético de demonstração.
 - **Gravar o firmware:** passo a passo (Wi‑Fi em `secrets.h`, `pio run -t upload`, monitor serial, teste do LED) em `docs/04_FIRMWARE_ESP32.md`, seção "Primeiro teste na placa".
   O pino da bomba está em `GPIO 2` (LED azul da placa) para validar sem bomba ligada.
-- **Modelo grande (servidor):** coloque `model.onnx`, `labels.json` e `model_card.json` em `backend/models/server/` e reinicie. Veja `docs/12_MODELO_NO_SERVIDOR.md`.
+- **Modelo grande (servidor):** coloque `model.onnx`, `labels.json` e `model_card.json` (os 3 que o notebook gera) em `models/server/`, na raiz, e reinicie.
+  Os pesos não ficam no git (94 MB). Veja `docs/12_MODELO_NO_SERVIDOR.md`.
   Sem o modelo, só o modo servidor fica indisponível; o modo ESP32 segue normal (`/api/config` mostra o motivo).
 - Fotos enviadas e corrigidas à mão saem em zip pela tela de histórico, no formato que `prepare_data.py --extra` lê para retreinar.
 
@@ -53,9 +55,9 @@ Ou com Docker (PostgreSQL incluso): `cp .env.example .env`, edite, `docker compo
 
 | Parte | Estado |
 | --- | --- |
-| Backend, banco (SQLite **e** PostgreSQL 16), protocolo com ESP32 simulado | testado automaticamente: 45 testes em SQLite. PostgreSQL 16 passou antes do modo servidor (10/11) e **não foi reexecutado** depois |
+| Backend, banco (SQLite **e** PostgreSQL 16), protocolo com ESP32 simulado | testado automaticamente: 58 testes em SQLite. PostgreSQL 16 passou antes do modo servidor (10/11) e **não foi reexecutado** depois |
 | **Firmware no ESP32 (12/11)** | **compilado, gravado e rodando numa placa esp32dev**: o modelo soilnet carrega, conecta no Wi‑Fi, responde ao backend, e uma imagem classificada `SEVERO` acendeu o LED azul (GPIO 2) com a regra de bomba. Houve folga de memória (relato da equipe) |
-| Modo servidor (modelo grande ONNX) | testado com um ONNX **sintético** (carga, os dois modos, bomba nunca acionada, modelo ausente, exportação, navegador). Acurácia e latência de uma ResNet real: **não medidas** |
+| Modo servidor (modelo grande ONNX) | testado com um ONNX **sintético** no formato do ResNet (binário, limiar, faixa de dúvida, modelo ausente/inválido, exportação). A ResNet50 real carrega e roda (≈20 ms/foto na CPU), só com imagens sintéticas. Acurácia em fotos reais e o enquadramento do notebook: **pendentes** |
 | Front no navegador (fluxo completo, mobo mesmo contêiner serve a API e o front compilado (sem CORS e com um deploy só). Detalhes e comandos: `infra/terraform/README.md`.o mesmo contêiner serve a API e o front compilado (sem CORS e com um deploy só). Detalhes e comandos: `infra/terraform/README.md`.ile, tema escuro) | testado com Playwright contra o stack real, usando o simulador |
 | Pipeline de treino → TFLite int8 → simulador | testado de ponta a ponta com imagens **sintéticas** (prova o encanamento, não a acurácia) |
 | Política de segurança da bomba (C++) | testada no computador |

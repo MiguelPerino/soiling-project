@@ -1,6 +1,6 @@
 import { Check, Droplets } from "lucide-react";
-import { LABEL_STYLE, duration, pct, pct1, seconds, when } from "../lib/format";
-import type { Analysis } from "../types";
+import { LABEL_STYLE, duration, labelText, pct, pct1, seconds, when } from "../lib/format";
+import type { Analysis, Config } from "../types";
 import { ENGINE_NAME, LABELS } from "../types";
 import { EngineName } from "./EngineName";
 
@@ -19,25 +19,49 @@ export function PumpResult({ a, blocked = false }: { a: Analysis; blocked?: bool
   );
 }
 
-/** Barras de probabilidade: só as classes que esse modelo tem (o do ESP32 pode ter 2). */
-export function Probabilities({ a }: { a: Analysis }) {
+/** Limiar de decisão do modelo que fez a análise (hoje só o do servidor é conhecido pelo backend). */
+export function decisionThreshold(a: Analysis, config?: Config): number | null {
+  return a.engine === "server" ? config?.engines.server.limiar ?? null : null;
+}
+
+/** Barras de probabilidade das duas classes. Com limiar conhecido, marca o ponto a partir do qual vira "Precisa limpar":
+ *  com limiar baixo (ex.: 19%), "Precisa limpar" pode vencer com a barra menor, e a marca mostra o porquê. */
+export function Probabilities({ a, config }: { a: Analysis; config?: Config }) {
   if (!a.probs) return null;
   const probs = a.probs;
+  const limiar = decisionThreshold(a, config);
   return (
     <div className="probabilities" aria-label="Probabilidades por classe">
       <span>Probabilidades por classe</span>
       {LABELS.filter((l) => l in probs).map((l) => (
         <div key={l}>
-          <b>{l}</b>
-          <i><em className={l.toLowerCase()} style={{ width: pct(probs[l] ?? 0) }} /></i>
+          <b>{labelText(l)}</b>
+          <i>
+            <em className={l.toLowerCase()} style={{ width: pct(probs[l] ?? 0) }} />
+            {l === "SEVERO" && limiar != null && <span className="threshold-mark" style={{ left: pct(limiar) }} aria-hidden />}
+          </i>
           <strong>{pct1(probs[l] ?? 0)}</strong>
         </div>
       ))}
+      {limiar != null && (
+        <small className="threshold-note">
+          “{LABEL_STYLE.SEVERO.text}” a partir de {pct1(limiar)} (limiar do modelo, marcado na barra).
+          {config?.engines.server.revisao_ate != null && config.engines.server.revisao_ate > limiar &&
+            ` Entre ${pct1(limiar)} e ${pct1(config.engines.server.revisao_ate)} o resultado vai para revisão humana.`}
+        </small>
+      )}
     </div>
   );
 }
 
-export function AnalysisResult({ a, blocked = false }: { a: Analysis; blocked?: boolean }) {
+/** Aviso de revisão: no servidor ele vem da faixa de dúvida; no ESP32, da confiança baixa. */
+export function reviewMessage(a: Analysis): string {
+  return a.engine === "server"
+    ? "Resultado na faixa de dúvida do modelo: peça uma revisão humana antes de agir."
+    : "Confiança baixa: peça uma revisão humana antes de agir.";
+}
+
+export function AnalysisResult({ a, config, blocked = false }: { a: Analysis; config?: Config; blocked?: boolean }) {
   const cls = a.classification;
   return (
     <section className="result-section" aria-label="Resultado" aria-live="polite">
@@ -55,9 +79,9 @@ export function AnalysisResult({ a, blocked = false }: { a: Analysis; blocked?: 
         </div>
         <div className="result-main">
           <span className="eyebrow">RESULTADO DO MODELO</span>
-          <div className={`big-label ${cls.toLowerCase()}`}><span aria-hidden />{cls}</div>
-          <p>{LABEL_STYLE[cls].desc}.</p>
-          {a.needs_review && <p className="alert warn">Confiança baixa: peça uma revisão humana antes de agir.</p>}
+          <div className={`big-label ${cls.toLowerCase()}`}><span aria-hidden />{labelText(cls)}</div>
+          <p>{LABEL_STYLE[cls]?.desc ?? cls}.</p>
+          {a.needs_review && <p className="alert warn">{reviewMessage(a)}</p>}
           <div className="confidence-block">
             <div>
               <span>Confiança do modelo</span>
@@ -66,7 +90,7 @@ export function AnalysisResult({ a, blocked = false }: { a: Analysis; blocked?: 
             <div className="progress"><i style={{ width: pct(a.confidence) }} /></div>
             <small>Confiança representa a certeza do modelo, não o percentual de sujeira.</small>
           </div>
-          <Probabilities a={a} />
+          <Probabilities a={a} config={config} />
         </div>
         <div className="technical-panel">
           <h3>Detalhes técnicos</h3>
@@ -80,7 +104,7 @@ export function AnalysisResult({ a, blocked = false }: { a: Analysis; blocked?: 
           <PumpResult a={a} blocked={blocked} />
         </div>
       </div>
-      <p className="sr-only">{ENGINE_NAME[a.engine ?? "esp32"]} classificou como {cls}.</p>
+      <p className="sr-only">{ENGINE_NAME[a.engine ?? "esp32"]} classificou como “{labelText(cls)}”.</p>
     </section>
   );
 }

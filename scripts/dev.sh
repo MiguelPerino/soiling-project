@@ -13,7 +13,7 @@ if [ -f ai-model/models/current/model.tflite ]; then
 else
   echo ">> Sem modelo em ai-model/models/current: usando o modelo SINTÉTICO de demonstração"
   "$ROOT/.venv/bin/python" -m esp32_simulator.server --demo-model --port 8081 --host 127.0.0.1 &
-  SIZE=96; CLASSES=LIMPO,MODERADO,SEVERO
+  SIZE=96; CLASSES=LIMPO,SEVERO
 fi
 SIM=$!; trap 'kill $SIM' EXIT
 cd backend

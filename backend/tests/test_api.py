@@ -6,7 +6,7 @@ from app.api.routes import create_app
 from app.services.assistant.service import Assistant
 from app.services.esp32 import Esp32Client
 from app.services.storage import ImageStore
-from tests.conftest import BLUE, GREEN, KEY, RED, make_jpeg, post
+from tests.conftest import BLUE, KEY, RED, make_jpeg, post
 
 
 def test_health_config_status(client, simulator):
@@ -14,8 +14,9 @@ def test_health_config_status(client, simulator):
     assert h["banco"] and h["esp32_configurado"] and h["ia_gemini"] is False and h["admin_protegido"] and h["modelo_servidor"]
     c = client.get("/api/config").json()
     assert c["engines"]["esp32"]["input_size"] == 32 and c["jpeg_quality"] and c["max_upload_mb"] == 1
-    assert c["engines"]["esp32"]["classes"] == ["LIMPO", "MODERADO", "SEVERO"] and c["upload_max_side"] == 512
-    assert c["engines"]["server"]["disponivel"] and c["engines"]["server"]["classes"] == ["LIMPO", "MODERADO", "SEVERO"]
+    assert c["engines"]["esp32"]["classes"] == ["LIMPO", "SEVERO"] and c["upload_max_side"] == 512
+    assert c["engines"]["server"]["disponivel"] and c["engines"]["server"]["classes"] == ["LIMPO", "SEVERO"]
+    assert c["rotulos"] == {"LIMPO": "Não precisa limpar", "SEVERO": "Precisa limpar"}
     s = client.get("/api/devices/status").json()
     assert s["online"] and s["info"]["device"] == "esp32-simulator"
 
@@ -33,7 +34,7 @@ def test_analyze_stores_file_and_row(client):
 
 
 def test_pump_only_severe_and_cooldown(client):
-    assert post(client, make_jpeg(GREEN), headers=KEY).json()["analise"]["cleaning_activated"] is False        # MODERADO nunca
+    assert post(client, make_jpeg(RED), headers=KEY).json()["analise"]["cleaning_activated"] is False          # LIMPO nunca
     sev = post(client, make_jpeg(BLUE, noise_seed=1), headers=KEY).json()["analise"]
     assert sev["classification"] == "SEVERO" and sev["cleaning_activated"] and sev["pump_duration_ms"] == 3000
     again = post(client, make_jpeg(BLUE, noise_seed=2), headers=KEY).json()["analise"]
@@ -66,7 +67,7 @@ def test_bad_uploads(client):
 
 def test_list_filter_relabel_delete(client):
     ids = [post(client, make_jpeg(c, noise_seed=i), headers=KEY, pump="false").json()["analise"]["id"]
-           for i, c in enumerate([RED, GREEN, BLUE])]
+           for i, c in enumerate([RED, RED, BLUE])]
     assert client.get("/api/analyses", params={"labels": "SEVERO"}).json()["total"] == 1
     assert client.get("/api/analyses", params={"labels": "XX"}).status_code == 422
     assert client.patch(f"/api/analyses/{ids[0]}/label", json={"label": "SEVERO"}).status_code == 401

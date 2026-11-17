@@ -14,9 +14,11 @@ from app.services.storage import ImageStore
 from esp32_simulator.classifier import Classifier
 from esp32_simulator.server import Device, serve
 from esp32_simulator.tiny_model import build_tiny_model
+from tests.server_tiny_model import build_server_model
 
 SIZE = 32
-RED, GREEN, BLUE = (230, 10, 10), (10, 230, 10), (10, 10, 230)    # modelo de teste: R->LIMPO, G->MODERADO, B->SEVERO
+RED, BLUE = (230, 10, 10), (10, 10, 230)       # modelos de teste: R -> LIMPO (não precisa limpar), B -> SEVERO (precisa limpar)
+DOUBT = (130, 10, 103)                         # modelo do servidor: P(Limpar) ~0,30, entre o limiar 0,19 e a revisão 0,50
 KEY = {"X-API-Key": "segredo"}
 
 
@@ -50,9 +52,14 @@ def tiny_dir(tmp_path_factory):
 
 
 @pytest.fixture(scope="session")
-def server_model(tiny_dir):
-    """Modelo grande de teste: o mesmo ONNX sintético (R->LIMPO, G->MODERADO, B->SEVERO), carregado pelo caminho real."""
-    return ServerModel.load(tiny_dir)
+def server_dir(tmp_path_factory):
+    return str(build_server_model(tmp_path_factory.mktemp("server"), size=SIZE))
+
+
+@pytest.fixture(scope="session")
+def server_model(server_dir):
+    """Modelo grande de teste no formato do ResNet do time (NHWC 0..255, probs, NaoLimpar/Limpar, limiar 0,19)."""
+    return ServerModel.load(server_dir)
 
 
 @pytest.fixture
@@ -67,7 +74,7 @@ def simulator(tiny_dir):
 @pytest.fixture
 def settings(tmp_path):
     return Settings(admin_api_key="segredo", max_upload_mb=1, input_size=SIZE, storage_dir=str(tmp_path / "img"),
-                    esp32_key="chave-esp", esp32_classes=("LIMPO", "MODERADO", "SEVERO"))      # o ONNX sintético de teste tem 3 classes
+                    esp32_key="chave-esp", esp32_classes=("LIMPO", "SEVERO"))
 
 
 @pytest.fixture

@@ -5,7 +5,7 @@
 - [ ] IP do ESP32 reservado no roteador; `ESP32_URL` correto; indicador do topo mostra "ESP32 online".
 - [ ] Modelo **treinado** gravado (não o sintético); `model_version` no resultado confere.
 - [ ] Bomba testada com água em recipiente; cooldown ajustado; **intervalo e duração** conhecidos pela equipe.
-- [ ] Uma foto de painel sujo, uma limpa e uma moderada **salvas no celular e no computador** (reserva).
+- [ ] Uma foto de painel sujo e uma limpa **salvas no celular e no computador** (reserva).
 - [ ] Gemini testado (ou aceitar o plano B).
 - [ ] Chave de administrador anotada; navegador do celular com a aba já aberta.
 - [ ] Plano B pronto: `docker compose --profile sim ...` (simulador) se o ESP32 falhar.

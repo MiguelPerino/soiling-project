@@ -1,7 +1,7 @@
 """O simulador precisa obedecer ao mesmo protocolo e às mesmas regras de segurança do firmware."""
 import httpx
 
-from tests.conftest import BLUE, GREEN, RED, make_jpeg
+from tests.conftest import BLUE, RED, make_jpeg
 
 
 def url(simulator):
@@ -30,7 +30,7 @@ def test_rejects_wrong_size_non_jpeg_and_huge(simulator):
 
 def test_policy(simulator):
     assert up(simulator, make_jpeg(RED)).json()["cleaning_activated"] is False
-    assert up(simulator, make_jpeg(GREEN)).json()["cleaning_activated"] is False
+    assert up(simulator, make_jpeg(RED, noise_seed=1)).json()["classification"] == "LIMPO"
     assert up(simulator, make_jpeg(BLUE, noise_seed=1), pump=0).json()["cleaning_activated"] is False
     first = up(simulator, make_jpeg(BLUE, noise_seed=2)).json()
     assert first["cleaning_activated"] and first["pump_duration_ms"] == 3000

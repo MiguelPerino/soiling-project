@@ -9,7 +9,7 @@ if (Test-Path "ai-model/models/current/model.tflite") {
 } else {
   Write-Host ">> Sem modelo em ai-model/models/current: usando o modelo SINTETICO de demonstracao"
   $simArgs = "-m","esp32_simulator.server","--demo-model","--port","8081","--host","127.0.0.1"
-  $size = "96"; $classes = "LIMPO,MODERADO,SEVERO"
+  $size = "96"; $classes = "LIMPO,SEVERO"
 }
 $sim = Start-Process -PassThru -NoNewWindow .\.venv\Scripts\python -ArgumentList $simArgs
 try {

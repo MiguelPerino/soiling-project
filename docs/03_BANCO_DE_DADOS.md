@@ -11,7 +11,7 @@ PostgreSQL 16 em uso real; SQLite só em testes/desenvolvimento rápido. Mesmo c
 | `image_path` | texto | caminho **relativo** a `STORAGE_DIR` (`2026/11/<uuid>.jpg`). A imagem não está no banco |
 | `original_filename` | texto | nome do arquivo enviado |
 | `engine` | `esp32` / `server` | quem classificou. Linhas antigas valem `esp32` |
-| `classification` | `LIMPO/MODERADO/SEVERO` | o que o motor respondeu (nunca é sobrescrito) |
+| `classification` | `LIMPO/SEVERO` (não precisa / precisa limpar) | o que o motor respondeu (nunca é sobrescrito) |
 | `confidence` | float 0–1 | confiança do classificador (**não** é % de sujeira) |
 | `probs` | JSON | probabilidade por classe |
 | `low_confidence` | bool | `confidence < LOW_CONFIDENCE_THRESHOLD` (padrão 0,60) |

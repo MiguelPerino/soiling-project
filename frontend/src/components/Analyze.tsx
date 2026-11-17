@@ -135,7 +135,7 @@ export function Analyze({ config, onDone }: { config: Config; onDone: () => void
             <label className="pump-toggle">
               <input type="checkbox" checked={pump} onChange={(e) => setPump(e.target.checked)} disabled={busy} />
               <span className="box" aria-hidden><Check size={14} /></span>
-              <span>Permitir acionar a bomba (só se o resultado for SEVERO)</span>
+              <span>Permitir acionar a bomba (só se o resultado for “Precisa limpar”)</span>
             </label>
           )}
           <div className="api-note">
@@ -166,7 +166,7 @@ export function Analyze({ config, onDone }: { config: Config; onDone: () => void
         </section>
       </div>
       {error && <p role="alert" className="alert error">{error}</p>}
-      {result && <AnalysisResult a={result} blocked={blocked} />}
+      {result && <AnalysisResult a={result} config={config} blocked={blocked} />}
     </div>
   );
 }
