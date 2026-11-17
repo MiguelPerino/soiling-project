@@ -8,5 +8,5 @@ terraform {
 
 provider "azurerm" {
   features {}
-  subscription_id = var.subscription_id   # azurerm 4.x exige; veja com: az account show --query id -o tsv
+  subscription_id = var.subscription_id # azurerm 4.x exige; veja com: az account show --query id -o tsv
 }

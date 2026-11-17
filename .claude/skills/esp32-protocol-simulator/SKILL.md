@@ -13,8 +13,9 @@ Contrato: `docs/05_PROTOCOLO_ESP32.md`. `GET /` (vivo) e `POST /upload?pump=0|1`
 Simulador:
 ```bash
 PYTHONPATH=tools .venv/bin/python -m esp32_simulator.server --demo-model --port 8081       # modelo sintético (cor dominante!)
-PYTHONPATH=tools .venv/bin/python -m esp32_simulator.server --model-dir ai-model/models/current --port 8081 --key SEGREDO
+PYTHONPATH=tools .venv/bin/python -m esp32_simulator.server --model-dir models/esp32 --port 8081 --key SEGREDO   # o modelo da placa (padrão)
 ```
 Ele aplica a mesma política da bomba (`--pump-ms`, `--cooldown-s`) e carrega `model.tflite` (ai-edge-litert ou TensorFlow) ou `model.onnx`.
 Limites: não prova que o modelo cabe no ESP32 nem reproduz o tempo de inferência. O `--demo-model` NÃO classifica sujeira.
-Backend aponta para ele com `ESP32_URL=http://127.0.0.1:8081`. Os testes do backend já sobem um simulador real em thread.
+Backend aponta para ele com `ESP32_URL=http://127.0.0.1:8081`. Os testes do backend já sobem um simulador real em thread
+(`test_esp32_model.py` com o soilnet 2x real). O simulador recebe o JPEG 112 já enquadrado pelo backend; só aceita modelos binários.

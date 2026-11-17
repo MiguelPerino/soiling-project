@@ -2,10 +2,10 @@ import { Check, ChevronRight, RefreshCw, ShieldCheck, Trash2, X } from "lucide-r
 import { useEffect, useState } from "react";
 import { api, ApiError, getAdminKey } from "../api";
 import { prepareImage } from "../lib/image";
-import { duration, pct, when } from "../lib/format";
+import { duration, labelText, pct, when } from "../lib/format";
 import type { Analysis, Config, Label } from "../types";
 import { ENGINE_NAME, LABELS } from "../types";
-import { PumpResult, Probabilities } from "./AnalysisResult";
+import { PumpResult, Probabilities, reviewMessage } from "./AnalysisResult";
 import { EngineName } from "./EngineName";
 import { LabelBadge } from "./LabelBadge";
 
@@ -70,14 +70,14 @@ export function DetailModal({ a, config, onClose, onChanged }: { a: Analysis; co
                 <small>{cur.human_label ? "Corrigida por uma pessoa" : "Sem correção humana"}</small>
               </div>
             </div>
-            {cur.needs_review && <p className="alert warn">Confiança baixa: peça uma revisão humana antes de agir.</p>}
+            {cur.needs_review && <p className="alert warn">{reviewMessage(cur)}</p>}
             <div className="modal-info-grid">
               <div><span>Mecanismo</span><strong><EngineName engine={cur.engine} /></strong></div>
               <div><span>Tempo de inferência</span><strong>{cur.inference_ms != null ? `${cur.inference_ms} ms` : "—"}</strong></div>
               <div><span>{cur.engine === "server" ? "Tempo total" : "Ida e volta total"}</span><strong>{duration(cur.round_trip_ms)}</strong></div>
               <div><span>Modelo</span><strong>{cur.model_version ?? "—"}</strong></div>
             </div>
-            <Probabilities a={cur} />
+            <Probabilities a={cur} config={config} />
             <PumpResult a={cur} />
             <div className="review-box">
               <div>
@@ -90,7 +90,7 @@ export function DetailModal({ a, config, onClose, onChanged }: { a: Analysis; co
               <div className="label-choice" role="group" aria-label="Corrigir classificação">
                 {LABELS.map((l) => (
                   <button key={l} className={cur.final_label === l && !!cur.human_label ? "active" : ""} aria-pressed={cur.final_label === l && !!cur.human_label} disabled={busy} onClick={() => relabel(l)}>
-                    <span aria-hidden />É {l}
+                    <span aria-hidden />{labelText(l)}
                   </button>
                 ))}
               </div>

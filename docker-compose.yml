@@ -24,10 +24,14 @@ services:
       ESP32_URL: ${ESP32_URL:-}
       ESP32_KEY: ${ESP32_KEY:-}
       ESP32_INPUT_SIZE: ${ESP32_INPUT_SIZE:-112}
+      ESP32_FRAMING: ${ESP32_FRAMING:-panel}
       ESP32_CLASSES: ${ESP32_CLASSES:-LIMPO,SEVERO}
       SERVER_MODEL_DIR: /models/server
       SERVER_INPUT_SIZE: ${SERVER_INPUT_SIZE:-0}
+      SERVER_REVIEW_UNTIL: ${SERVER_REVIEW_UNTIL:-0.5}
+      SERVER_FRAMING: ${SERVER_FRAMING:-panel}
       UPLOAD_MAX_SIDE: ${UPLOAD_MAX_SIDE:-512}
+      LOW_CONFIDENCE_THRESHOLD: ${LOW_CONFIDENCE_THRESHOLD:-0.50}
       ADMIN_API_KEY: ${ADMIN_API_KEY:-}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       GEMINI_MODEL: ${GEMINI_MODEL:-}
@@ -42,7 +46,7 @@ services:
     profiles: ["sim"]
     build: { context: ., dockerfile: Dockerfile.simulator }
     environment: { ESP32_KEY: "${ESP32_KEY:-}" }
-    volumes: ["./ai-model/models/current:/model:ro"]
+    volumes: ["./models/esp32:/model:ro"]          # o mesmo modelo gravado no ESP32 (soilnet 2x)
     ports: ["8081:8081"]
 volumes:
   pgdata:

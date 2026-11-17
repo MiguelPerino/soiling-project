@@ -1,18 +1,19 @@
 # 00 · Visão geral
 
 ## Objetivo
-Identificar o nível de sujeira de um painel solar a partir de uma fotografia e, quando necessário, acionar uma pequena bomba de
+Dizer, a partir de uma fotografia, se um painel solar precisa ou não de limpeza e, quando necessário, acionar uma pequena bomba de
 água para limpar. É uma **demonstração acadêmica funcional**, não um sistema industrial.
 
 ## Classes
-| Classe | Significado (suposição da equipe) | Ação |
-| --- | --- | --- |
-| `LIMPO` | painel sem sujeira relevante | nenhuma |
-| `MODERADO` | poeira visível | sugerir limpeza (o sistema **não** aciona a bomba) |
-| `SEVERO` | sujeira pesada | acionar a bomba, se a confiança ≥ 0,60 |
+São **duas classes**. O código vai na API, no banco e no protocolo do ESP32; o texto é o que a tela mostra.
 
-Mapeamento do dataset Roboflow: `Clean→LIMPO`, `Dusty→MODERADO`, `Soiled→SEVERO`. **É uma suposição**: confira exemplos de
-cada classe antes de treinar (`02_DATASET_E_TREINO.md`).
+| Código | Na tela | Nos modelos | Ação |
+| --- | --- | --- | --- |
+| `LIMPO` | Não precisa limpar | `NaoLimpar` / `NAOLIMPAR` | nenhuma |
+| `SEVERO` | Precisa limpar | `Limpar` / `LIMPAR` (classe positiva) | ESP32: acionar a bomba se a confiança ≥ limiar. Servidor: só informa |
+
+Os dois modelos decidem por **limiar** sobre P(Limpar), não pela classe de maior probabilidade (ESP32: 0,50; servidor: 0,19).
+Antes dos dois modelos, a foto é **enquadrada** (placa recortada) pelo mesmo código que tratou o dataset de treino.
 
 `confidence` (0–1) é o quanto a rede "tem certeza" da classe. **Não é percentual de sujeira.** O modelo não mede quantidade de sujeira.
 
@@ -27,8 +28,9 @@ cada classe antes de treinar (`02_DATASET_E_TREINO.md`).
 ## Decisões nossas (e por quê)
 | Decisão | Motivo |
 | --- | --- |
-| Rede pequena (soilnet v1: 67 mil parâmetros, entrada 112×112, int8, 114 KB) | `esp32dev` não tem PSRAM; ~320 KB de RAM utilizável |
-| Treino em Keras → TFLite int8 | é o caminho nativo do TensorFlow Lite Micro |
+| Rede pequena no ESP32 (soilnet 2x: 136 mil parâmetros, entrada 112×112, int8, 192 KB) | `esp32dev` não tem PSRAM; ~320 KB de RAM utilizável |
+| Treino em notebooks (Keras → TFLite int8 no ESP32; PyTorch → ONNX no servidor) | caminho nativo do TFLite Micro; ResNet pré-treinada para o servidor |
+| Mesmo enquadramento no treino e na inferência | o modelo só vê, em uso, fotos preparadas como as do treino |
 | Normalização dentro do modelo | o firmware só entrega pixels e quantiza com a escala do tensor; menos chance de divergir do treino |
 | Política da bomba no firmware | segurança física não pode depender de rede nem do servidor |
 | Simulador do ESP32 | testar e ensaiar sem hardware; "imagem de reserva" na apresentação |

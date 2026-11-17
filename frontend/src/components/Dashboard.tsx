@@ -1,4 +1,4 @@
-import { Activity, Check, ChevronRight, CircleAlert, FileImage, ShieldCheck, Upload } from "lucide-react";
+import { Check, ChevronRight, Droplets, FileImage, ShieldCheck, Upload } from "lucide-react";
 import { useEffect, useState, type ElementType } from "react";
 import { api } from "../api";
 import { dayLabel, hourLabel, LABEL_STYLE, pct, pct1 } from "../lib/format";
@@ -12,7 +12,7 @@ import { WeatherCard } from "./WeatherCard";
 
 const NF = new Intl.NumberFormat("pt-BR");
 const share = (n: number, total: number) => (total ? `${((n / total) * 100).toFixed(1).replace(".", ",")}% do total` : "—");
-const TONE: Record<Label, string> = { LIMPO: "clean", MODERADO: "moderate", SEVERO: "severe" };
+const TONE: Record<Label, string> = { LIMPO: "clean", SEVERO: "severe" };
 
 function MetricCard({ title, value, detail, tone, icon: Icon, spark }: { title: string; value: string; detail: string; tone: string; icon: ElementType; spark?: number[] }) {
   const max = Math.max(1, ...(spark ?? [0]));
@@ -39,12 +39,12 @@ function Donut({ s }: { s: Stats }) {
   return (
     <div className="donut-wrap">
       <div className="donut" style={{ background: `conic-gradient(${parts.join(",")})` }} role="img"
-        aria-label={LABELS.map((l) => `${l}: ${s.por_rotulo[l] ?? 0}`).join(", ")}>
+        aria-label={LABELS.map((l) => `${LABEL_STYLE[l].text}: ${s.por_rotulo[l] ?? 0}`).join(", ")}>
         <div><strong>{NF.format(s.total)}</strong><span>Total</span></div>
       </div>
       <div className="legend-list">
         {LABELS.map((l) => (
-          <div key={l}><i className={TONE[l]} /><span>{l.charAt(0) + l.slice(1).toLowerCase()}</span><strong>{NF.format(s.por_rotulo[l] ?? 0)}</strong><small>{pct1((s.por_rotulo[l] ?? 0) / s.total)}</small></div>
+          <div key={l}><i className={TONE[l]} /><span>{LABEL_STYLE[l].text}</span><strong>{NF.format(s.por_rotulo[l] ?? 0)}</strong><small>{pct1((s.por_rotulo[l] ?? 0) / s.total)}</small></div>
         ))}
       </div>
     </div>
@@ -111,10 +111,9 @@ export function Dashboard({ config, refreshKey, onAnalyze, onOpenHistory, onChan
         <>
           <section className="metrics-grid">
             <MetricCard title="Imagens analisadas" value={NF.format(s.total)} detail={s.ultima_analise ? `Última: ${dayLabel(s.ultima_analise)}, ${hourLabel(s.ultima_analise)}` : "—"} tone="blue" icon={FileImage} spark={totalSeries} />
-            <MetricCard title="Painéis limpos" value={NF.format(s.por_rotulo.LIMPO ?? 0)} detail={share(s.por_rotulo.LIMPO ?? 0, s.total)} tone="green" icon={Check} spark={series("LIMPO")} />
-            <MetricCard title="Sujeira moderada" value={NF.format(s.por_rotulo.MODERADO ?? 0)} detail={share(s.por_rotulo.MODERADO ?? 0, s.total)} tone="amber" icon={CircleAlert} spark={series("MODERADO")} />
-            <MetricCard title="Sujeira severa" value={NF.format(s.por_rotulo.SEVERO ?? 0)} detail={share(s.por_rotulo.SEVERO ?? 0, s.total)} tone="red" icon={Activity} spark={series("SEVERO")} />
-            <MetricCard title="Aguardando revisão" value={NF.format(s.para_revisao)} detail={`Confiança abaixo de ${pct(config.low_confidence_threshold)}`} tone="purple" icon={ShieldCheck} />
+            <MetricCard title={LABEL_STYLE.LIMPO.text} value={NF.format(s.por_rotulo.LIMPO ?? 0)} detail={share(s.por_rotulo.LIMPO ?? 0, s.total)} tone="green" icon={Check} spark={series("LIMPO")} />
+            <MetricCard title={LABEL_STYLE.SEVERO.text} value={NF.format(s.por_rotulo.SEVERO ?? 0)} detail={share(s.por_rotulo.SEVERO ?? 0, s.total)} tone="red" icon={Droplets} spark={series("SEVERO")} />
+            <MetricCard title="Aguardando revisão" value={NF.format(s.para_revisao)} detail="Baixa confiança ou faixa de dúvida" tone="purple" icon={ShieldCheck} />
           </section>
           <section className="dashboard-grid">
             <div className="card chart-card">

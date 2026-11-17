@@ -24,7 +24,7 @@ class Analysis(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     image_path: Mapped[str] = mapped_column(String(300))                      # relativo a STORAGE_DIR
     original_filename: Mapped[str] = mapped_column(String(255), default="")
-    classification: Mapped[str] = mapped_column(String(10), index=True)       # LIMPO | MODERADO | SEVERO (o que o motor disse)
+    classification: Mapped[str] = mapped_column(String(10), index=True)       # LIMPO (não precisa limpar) | SEVERO (precisa limpar): o que o motor disse
     confidence: Mapped[float] = mapped_column(Float)                          # 0..1; NÃO é percentual de sujeira
     probs: Mapped[dict | None] = mapped_column(JSON)
     low_confidence: Mapped[bool] = mapped_column(Boolean, default=False)

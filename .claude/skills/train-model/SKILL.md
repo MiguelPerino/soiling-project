@@ -1,21 +1,26 @@
 ---
 name: train-model
-description: Preparar o dataset (Roboflow + fotos extras), treinar o classificador Keras e exportar TFLite int8 para o ESP32. Use ao treinar, avaliar, trocar a rede ou mudar o tamanho de entrada.
+description: Como os modelos binários (soilnet do ESP32 e ResNet do servidor) são treinados nos notebooks e como publicar um modelo novo no projeto. Use ao treinar, trocar de modelo, mudar o tamanho de entrada ou o enquadramento.
 ---
-# Treino (ai-model/)
+# Treino e publicação de modelos (ai-model/ e models/)
 
+O treino é feito nos **notebooks do Colab** em `ai-model/notebooks/` (não há pipeline de treino em Python no repositório):
+1. `1_tratamento_dataset_224.ipynb` — enquadra cada foto (placa recortada) em 224×224, JPEG 95. Gera o `preprocess.py`.
+2. `2_treino_resnet_servidor.ipynb` — ResNet50 → `model.onnx` (servidor, limiar 0,19).
+3. `3_treino_soilnet_esp32.ipynb` — soilnet 2x → `model.tflite` int8 (ESP32, 112 px, limiar 0,50) + `model_data.h`.
+
+Classes: `NaoLimpar` → LIMPO ("Não precisa limpar"), `Limpar` → SEVERO ("Precisa limpar", positiva). Decisão por limiar, não argmax.
+
+**Pré-processamento é parte do modelo:** `backend/app/services/framing.py` é cópia fiel do `preprocess.py` (conferida pixel a pixel).
+Mudou o notebook 1? Copie as funções para `framing.py` e retreine os dois modelos. ESP32: `analysis.esp32_jpeg` reproduz o `device_like`.
+
+Publicar soilnet novo (detalhes em `docs/02_DATASET_E_TREINO.md`):
 ```bash
-.venv/bin/pip install -r ai-model/requirements.txt
-cd ai-model/training
-python prepare_data.py --roboflow ../data/roboflow --extra ../data/minhas_fotos --out ../data/manifest.csv   # --class-map "Dusty=SEVERO" --resplit
-python train.py --manifest ../data/manifest.csv --size 96 --epochs 40 --out ../models/run1
-cp -r ../models/run1 ../models/current
-python ../conversion/tflite_to_header.py ../models/current/model.tflite ../../firmware/esp32/src/model_data.h
+cp <zip do notebook>/{model.tflite,labels.json,model_card.json,metricas_modelo_final.json,metricas_teste.png,erros_teste.csv,particao.csv} models/esp32/
+.venv/bin/python ai-model/conversion/tflite_to_header.py models/esp32/model.tflite firmware/esp32/src/model_data.h
+# atualize os itens [MODELO] de firmware/esp32/src/config.h com o card; depois:
+scripts/test.sh      # test_esp32_model.py falha se config.h, model_data.h e card não baterem
 ```
-- Dataset precisa de **um rótulo por imagem** (exporte do Roboflow como classificação). `Clean/Dusty/Soiled → LIMPO/MODERADO/SEVERO` é **suposição**: confira imagens.
-- Duplicatas entre partições são removidas (SHA‑256). Mantenha um teste só com fotos do **seu** painel/câmera.
-- O modelo normaliza **dentro** (Rescaling) e recebe RGB 0–255; o resize+JPEG do treino imita o backend. Mude `--size` ⇒ mude `INPUT_SIZE` no backend, no firmware e no `model_card.json`.
-- Meça sempre o **int8** (`teste_tflite_int8` em `metrics.json`): é o que roda no ESP32. Olhe a matriz de confusão (SEVERO×LIMPO são os erros caros).
-- BatchNorm com `momentum=0.9` de propósito (com poucos passos o padrão 0,99 dá modelo que treina bem e falha na inferência).
-- Não prometa acurácia sem ter treinado com dados reais. O único treino rodado até hoje foi sintético.
-- Tamanho: `model_card.json` mostra bytes e operadores; a RAM real só se mede no ESP32 (`arena_used_bytes`).
+Publicar ResNet nova: release no GitHub + `models/server/model.lock` (`docs/12_MODELO_NO_SERVIDOR.md`).
+- Mude o tamanho de entrada ⇒ `ESP32_INPUT_SIZE` (backend) e `INPUT_SIZE` (firmware). Modelo do ESP32 sem o dataset tratado ⇒ `ESP32_FRAMING=none`.
+- Não prometa acurácia: as métricas são as do teste dos notebooks; ninguém mediu com fotos reais pelo sistema.

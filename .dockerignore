@@ -11,3 +11,10 @@ docs
 backend/data
 backend/storage
 backend/tests
+.venv
+**/.pytest_cache
+.claude
+models/esp32
+scripts
+storage
+data

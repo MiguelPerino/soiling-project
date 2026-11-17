@@ -7,7 +7,6 @@
 int main() {
   PumpPolicy p{0.60f, 5000, 60000, 60000};
   assert(!p.decide(Label::LIMPO, 0.99f, true, 1000).activate);
-  assert(!p.decide(Label::MODERADO, 0.99f, true, 1000).activate);
   assert(!p.decide(Label::SEVERO, 0.59f, true, 1000).activate);          // baixa confiança
   assert(!p.decide(Label::SEVERO, 0.99f, false, 1000).activate);         // pump=0
   auto d = p.decide(Label::SEVERO, 0.90f, true, 1000);                   // logo após o boot: deve acionar
@@ -36,6 +35,12 @@ int main() {
     assert(pickClass(p, 2, 0, 0.41f).index == 1); }                                    // positiva = índice 0: P(0)=0,2 < 0,41 => escolhe o 1
   { float p[3] = {0.2f, 0.5f, 0.3f};
     assert(pickClass(p, 3, 2, 0.41f).index == 1); }                                    // 3 classes: argmax
+  // modelo atual (soilnet 2x): limiar de decisão e da bomba = 0,50
+  { PumpPolicy q{0.50f, 2000, 60000, 10000};
+    float hi[2] = {0.30f, 0.70f}, lo[2] = {0.51f, 0.49f};
+    Pick a = pickClass(hi, 2, 1, 0.50f), b = pickClass(lo, 2, 1, 0.50f);
+    assert(a.index == 1 && q.decide(Label::SEVERO, a.confidence, true, 1000).activate);
+    assert(b.index == 0 && !q.decide(Label::LIMPO, b.confidence, true, 1000).activate); }
   // com o limiar da bomba igual ao de decisão, a foto positiva limítrofe aciona
   { PumpPolicy q{0.41f, 5000, 60000, 60000};
     float p[2] = {0.55f, 0.45f};
