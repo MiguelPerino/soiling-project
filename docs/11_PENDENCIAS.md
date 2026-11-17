@@ -15,7 +15,7 @@
 | 11 | Limiar de confiança 0,60 | ponto de partida; calibrar com `metrics.json` |
 | 13 | Recomendação de chuva: posição real do painel e limiares (1 mm / 10 mm são provisórios) | calibrar observando; testar com a API real |
 | 12 | Mais de um ESP32 | não suportado nesta versão (um `ESP32_URL`) |
-| 14 | **Modelo grande do servidor** | 17/11: ResNet50 `resnet50-224-20261116` integrado (binário NaoLimpar/Limpar, NHWC 0..255, `probs`, limiar 0,19). Enquadramento do notebook portado (idêntico ao `preprocess.py`). **Falta:** medir acurácia em fotos reais; decidir onde guardar o ONNX (94 MB, fora do git) |
+| 14 | **Modelo grande do servidor** | 17/11: ResNet50 `resnet50-224-20261116` integrado (binário NaoLimpar/Limpar, NHWC 0..255, `probs`, limiar 0,19). Enquadramento do notebook portado (idêntico ao `preprocess.py`). Pesos na release `modelo-resnet50-20261116`, baixados e conferidos por `scripts/download-model.sh`. **Falta:** medir acurácia em fotos reais |
 | 19 | **Faixa de dúvida do servidor** (`SERVER_REVIEW_UNTIL` = 0,50) | provisório; escolher com P(Limpar) foto a foto no conjunto de teste do notebook |
 | 15 | **Nomes das classes do ESP32**: o soilnet v1 é NAOLIMPAR/LIMPAR e o sistema mostra LIMPO/SEVERO | mapeado (NAOLIMPAR→LIMPO, LIMPAR→SEVERO), mas NAOLIMPAR inclui poeira leve; confirmar se "Painel limpo" na tela é o texto certo |
 | 18 | **Soilnet v1 em hardware**: compila? cabe na RAM? `arena_used_bytes`? tempo de inferência? | 12/11: **compila, grava e roda** (modelo carrega, Wi‑Fi, LED acendeu com SEVERO); equipe relatou folga de memória. **Faltam** os números: `arena_used_bytes`, `free_heap`, `inference_ms`, e fotos reais |

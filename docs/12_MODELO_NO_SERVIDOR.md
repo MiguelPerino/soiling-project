@@ -16,13 +16,26 @@ São **dois modos**, escolhidos no front para cada foto. Não existe modo "compa
 O dataset **não** faz parte do repositório, e os pesos também não (`models/server/` está no `.gitignore`: o ONNX tem 94 MB).
 As fotos novas voltam pelo sistema (exportação abaixo).
 
+## Onde o modelo fica e como chega à pasta
+- **Fonte oficial:** a release do GitHub [`modelo-resnet50-20261116`](https://github.com/libinayantonini-sketch/soiling-project/releases/tag/modelo-resnet50-20261116),
+  com `model.onnx`, `labels.json` e `model_card.json`.
+- **No git:** só `models/server/model.lock` (release, versão e o SHA-256 de cada arquivo). É ele que diz qual modelo o código espera.
+- **Baixar:** `scripts/download-model.sh` (Windows: `scripts\download-model.ps1`), chamado também pelo `setup`. Baixa da release para
+  `models/server/` e confere o SHA-256; se algo não bater, não copia nada. `--check` (`-Check`) só confere a pasta.
+  O repositório é privado: o script usa o GitHub CLI logado (`gh auth login`) ou `GITHUB_TOKEN` (leitura do repositório);
+  sem nenhum dos dois, explica como baixar à mão pela página da release.
+- **Docker/Azure:** o `docker build` confere a pasta com o `model.lock` e **falha** se o modelo faltar ou for outro
+  (na Azure o modo Servidor é o único que funciona). Para construir sem modelo de propósito: `--build-arg ALLOW_NO_MODEL=1`.
+- **Trocar de modelo:** nova release com os 3 arquivos → atualize `tag`, `versao` e os hashes no `model.lock`
+  (`sha256sum model.onnx labels.json model_card.json`) → commit → `scripts/download-model.sh` em cada máquina.
+
 ## Modelo atual
 `resnet50-224-20261116` (notebook `treino_placas_resnet_tratado.ipynb` do time). O card informa, sobre 191 fotos de teste do notebook:
 acurácia 95,3% no limiar 0,19 (95,8% no corte 0,5), AUC 0,99, 7 limpas classificadas "Precisa limpar" e 2 sujas classificadas
 "Não precisa limpar". **Esses números são do notebook; este sistema não os mediu** (não temos as fotos de teste aqui).
 
 ## O que a equipe entrega: os 3 arquivos que o notebook gera
-Coloque em `models/server/` na raiz do repositório (ou aponte `SERVER_MODEL_DIR`). Em Docker essa pasta vai para `/models/server`.
+Eles vão para `models/server/` na raiz do repositório (ou aponte `SERVER_MODEL_DIR`) pelo `scripts/download-model.sh`. Em Docker essa pasta vai para `/models/server`.
 
 | Arquivo | Conteúdo |
 | --- | --- |

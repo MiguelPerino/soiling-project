@@ -7,4 +7,5 @@ python3 -m venv .venv
 .venv/bin/pip install -r backend/requirements-dev.txt
 (cd frontend && npm ci --no-audit --no-fund && npm run build)
 [ -f .env ] || cp .env.example .env
+scripts/download-model.sh || echo "AVISO: o modelo grande não foi baixado. O modo Servidor fica indisponível até rodar scripts/download-model.sh."
 echo "Pronto. Testes: scripts/test.sh | Rodar: scripts/dev.sh"

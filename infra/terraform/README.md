@@ -30,7 +30,8 @@ terraform apply
 terraform output site_url
 ```
 Nova versão do código: `docker build ... -t $ACR/soiling:v2`, `docker push`, `image_tag = "v2"` no `terraform.tfvars`, `terraform apply`.
-Antes do build, copie `model.onnx`, `labels.json` e `model_card.json` para `models/server/` (a imagem leva o modelo dentro).
+Antes do build, rode `scripts/download-model.sh` na raiz (precisa de `gh auth login` ou `GITHUB_TOKEN`): a imagem leva o modelo dentro,
+e o `docker build` **falha** se `models/server/` não tiver exatamente o modelo do `model.lock`.
 
 ## Conferir
 `curl $(terraform output -raw site_url)/api/health` e abra o `site_url`: o modo Servidor deve aparecer ativo e o modo ESP32 indisponível.

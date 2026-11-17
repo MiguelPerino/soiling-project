@@ -46,7 +46,9 @@ Ou com Docker (PostgreSQL incluso): `cp .env.example .env`, edite, `docker compo
 - O `dev.sh` usa o **modelo real soilnet** no simulador quando `ai-model/models/current/` existe; sem ele, cai num modelo sintético de demonstração.
 - **Gravar o firmware:** passo a passo (Wi‑Fi em `secrets.h`, `pio run -t upload`, monitor serial, teste do LED) em `docs/04_FIRMWARE_ESP32.md`, seção "Primeiro teste na placa".
   O pino da bomba está em `GPIO 2` (LED azul da placa) para validar sem bomba ligada.
-- **Modelo grande (servidor):** coloque `model.onnx`, `labels.json` e `model_card.json` (os 3 que o notebook gera) em `models/server/`, na raiz, e reinicie.
+- **Modelo grande (servidor):** `scripts/download-model.sh` (Windows: `scripts\download-model.ps1`; o `setup` já chama) baixa os 3 arquivos da
+  [release `modelo-resnet50-20261116`](https://github.com/libinayantonini-sketch/soiling-project/releases/tag/modelo-resnet50-20261116) para `models/server/`
+  e confere o SHA-256 com `models/server/model.lock`. O repositório é privado: precisa de `gh auth login` (GitHub CLI) ou `GITHUB_TOKEN`.
   Os pesos não ficam no git (94 MB). Veja `docs/12_MODELO_NO_SERVIDOR.md`.
   Sem o modelo, só o modo servidor fica indisponível; o modo ESP32 segue normal (`/api/config` mostra o motivo).
 - Fotos enviadas e corrigidas à mão saem em zip pela tela de histórico, no formato que `prepare_data.py --extra` lê para retreinar.

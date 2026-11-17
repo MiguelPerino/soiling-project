@@ -22,10 +22,13 @@ A demonstração funciona **sem internet** (Gemini cai no plano B; a recomendaç
 
 O front **não** é separado: o mesmo contêiner serve a API e o front compilado (sem CORS e com um deploy só). Detalhes e comandos: `infra/terraform/README.md`.
 Cria: grupo de recursos, registro de imagens (ACR), Container Apps com HTTPS e 1 réplica, e (com `persistent = true`) PostgreSQL gerenciado + Azure Files para as fotos.
-O modelo grande vai dentro da imagem (`models/server/` é copiado no `docker build`).
+O modelo grande vai dentro da imagem (`models/server/` é copiado no `docker build`). Antes do build rode `scripts/download-model.sh`:
+o build confere o SHA-256 com `models/server/model.lock` e falha se o modelo faltar ou for outro (`--build-arg ALLOW_NO_MODEL=1` para construir sem ele).
 
 ### Limites honestos
-- **Terraform e Docker não foram executados** ao construir o projeto (só a sintaxe HCL foi conferida com `python-hcl2`). Espere ajustes no primeiro `apply`.
+- **Terraform e o build completo do Docker não foram executados** ao construir o projeto (só a sintaxe HCL foi conferida com `python-hcl2`). Espere ajustes no primeiro `apply`.
+  Em 17/11 só a etapa do Dockerfile que confere o modelo foi executada, isolada, com Docker 29 (modelo certo, ausente, diferente e `ALLOW_NO_MODEL=1`);
+  o build inteiro parou no `pip install` por causa do proxy do ambiente de teste, não do projeto.
 - Contas Azure for Students limitam as regiões e, às vezes, o PostgreSQL: por isso `location` e `persistent` são variáveis.
 - Com `persistent = false` (padrão), banco e fotos ficam no disco do contêiner e somem se ele reiniciar.
 - O site é público: `ADMIN_API_KEY` é obrigatória; fotos de visitantes ficam no sistema.

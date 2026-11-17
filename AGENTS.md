@@ -29,7 +29,8 @@ Exceção decidida em 9/11: **Open‑Meteo só como recomendação de chuva na t
 
 ## Comandos
 ```bash
-scripts/setup.sh                                   # venv + dependências + build do front
+scripts/setup.sh                                   # venv + dependências + build do front + modelo grande
+scripts/download-model.sh [--check]                # baixa/confere o modelo grande (release do GitHub, SHA-256 em models/server/model.lock)
 scripts/test.sh                                    # backend, ai-model, typecheck do front, política da bomba (C++)
 TEST_DATABASE_URL=postgresql+psycopg://u:s@host/db scripts/test.sh   # também no PostgreSQL
 scripts/dev.sh                                     # simulador + API em http://localhost:8000

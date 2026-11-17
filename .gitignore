@@ -12,6 +12,7 @@ ai-model/data/*
 ai-model/models/*
 models/server/*
 !models/server/.gitkeep
+!models/server/model.lock
 !ai-model/models/.gitkeep
 *.tfstate*
 .terraform/
