@@ -155,8 +155,8 @@ class ServerModel:
         rgb = img.convert("RGB")
         if self.framing == "none":
             return np.asarray(rgb.resize((self.size, self.size), Image.BILINEAR)), None
-        out, info = fr.frame_image(np.ascontiguousarray(np.asarray(rgb)), self.size, self.framing, self.frame_margin,
-                                   self.center_frac, self.wide_ratio)
+        out, info = fr.treated_224(np.asarray(rgb), self.framing, self.size, margin=self.frame_margin,
+                                   center_frac=self.center_frac, wide_ratio=self.wide_ratio)
         return out, info["metodo"]
 
     def to_tensor(self, arr: np.ndarray) -> np.ndarray:

@@ -98,7 +98,7 @@ def create_app(settings: Settings | None = None, *, repo: Repository | None = No
         sm: ServerModel | None = request.app.state.server_model
         engines = {
             "esp32": {"disponivel": request.app.state.esp32.configured, "classes": list(cfg.esp32_classes),
-                      "input_size": cfg.input_size, "aciona_bomba": True,
+                      "input_size": cfg.input_size, "aciona_bomba": True, "enquadramento": cfg.esp32_framing,
                       "motivo": None if request.app.state.esp32.configured else "ESP32_URL não definido"},
             "server": {"disponivel": sm is not None, "classes": sm.info()["classes"] if sm else None,
                        "input_size": sm.size if sm else (cfg.server_input_size or None), "aciona_bomba": False,
@@ -135,7 +135,8 @@ def create_app(settings: Settings | None = None, *, repo: Repository | None = No
             row = analyze(data, file.filename or "foto", engine=engine, size=cfg.input_size, max_side=cfg.upload_max_side,
                           quality=cfg.jpeg_quality, low_conf=cfg.low_confidence_threshold, pump=pump_allowed,
                           esp32=request.app.state.esp32, server_model=request.app.state.server_model,
-                          server_error=request.app.state.server_error, store=request.app.state.store, repo=repo_)
+                          server_error=request.app.state.server_error, store=request.app.state.store, repo=repo_,
+                          esp32_framing=cfg.esp32_framing)
         except InvalidImage as exc:
             raise HTTPException(422, str(exc))
         except (Esp32Error, ServerModelUnavailable) as exc:

@@ -1,6 +1,8 @@
 """Fluxo de uma análise, em um de dois modos (`engine`):
 
   esp32   a foto vira JPEG do tamanho do modelo do ESP32 -> o ESP32 classifica e decide a bomba (como sempre).
+          ESP32_FRAMING escolhe como: "panel" (padrão, soilnet 2x de 16/11) aplica antes o enquadramento do notebook de
+          tratamento (224) e reduz, como no treino com o dataset tratado; "none" estica a foto inteira (modelos do dataset bruto).
   server  a foto é classificada aqui, pelo modelo grande (ONNX, binário), no tamanho que ele espera. NÃO aciona a bomba.
           "Revisar" vem da faixa de dúvida do modelo (limiar <= P(precisa limpar) < SERVER_REVIEW_UNTIL), não de LOW_CONFIDENCE_THRESHOLD.
 
@@ -14,9 +16,11 @@ import time
 from dataclasses import dataclass
 from io import BytesIO
 
+import numpy as np
 from PIL import Image, ImageOps
 
 from app.database.repository import Repository
+from app.services import framing as fr
 from app.services.esp32 import Esp32Client
 from app.services.server_model import ServerModel, ServerModelUnavailable
 from app.services.storage import ImageStore
@@ -66,16 +70,24 @@ def normalize_image(data: bytes, max_side: int, quality: int = 85) -> Normalized
     return Normalized(buf.getvalue(), img, img.width, img.height)
 
 
-def esp32_jpeg(img: Image.Image, size: int, quality: int = 85) -> bytes:
-    """JPEG size×size (estica, igual ao treino) para o ESP32."""
+def esp32_jpeg(img: Image.Image, size: int, quality: int = 85, framing: str = fr.FRAMING) -> bytes:
+    """JPEG size×size para o ESP32, do jeito que o modelo dele foi treinado.
+
+    framing="panel"/"center" (padrão: panel): enquadra como o notebook de tratamento (224×224), depois reduz para size
+    (bilinear), igual ao notebook treino_esp32_dataset224 (224 tratada -> IMG_SIZE -> JPEG -> RGB565 no firmware).
+    framing="none": estica a foto inteira (só para modelos treinados com o dataset bruto).
+    O protocolo não muda: o ESP32 recebe sempre um JPEG size×size."""
+    if framing != "none":
+        framed, _ = fr.treated_224(np.asarray(img.convert("RGB")), framing)
+        img = Image.fromarray(framed)
     buf = BytesIO()
-    img.resize((size, size), Image.BILINEAR).save(buf, "JPEG", quality=quality)
+    img.convert("RGB").resize((size, size), Image.BILINEAR).save(buf, "JPEG", quality=quality)
     return buf.getvalue()
 
 
 def analyze(data: bytes, filename: str, *, engine: str = "esp32", size: int, max_side: int, quality: int, low_conf: float,
             pump: bool, esp32: Esp32Client, server_model: ServerModel | None, server_error: str | None = None,
-            store: ImageStore, repo: Repository) -> dict:
+            store: ImageStore, repo: Repository, esp32_framing: str = fr.FRAMING) -> dict:
     norm = normalize_image(data, max_side, quality)
     if engine == "server":
         if server_model is None:
@@ -88,7 +100,7 @@ def analyze(data: bytes, filename: str, *, engine: str = "esp32", size: int, max
                       pump_reason=SERVER_PUMP_REASON, dirt_level=None, model_version=pred.model_version,
                       inference_ms=int(pred.latency_ms), round_trip_ms=total_ms)
     else:
-        result, round_trip_ms = esp32.upload(esp32_jpeg(norm.image, size, quality), pump)       # falhou? nada é gravado
+        result, round_trip_ms = esp32.upload(esp32_jpeg(norm.image, size, quality, esp32_framing), pump)       # falhou? nada é gravado
         fields = dict(classification=result.classification.value, confidence=result.confidence, probs=result.probs,
                       low_confidence=result.confidence < low_conf, cleaning_activated=result.cleaning_activated,
                       pump_duration_ms=result.pump_duration_ms, pump_reason=result.reason, dirt_level=result.dirt_level,

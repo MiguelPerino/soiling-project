@@ -6,7 +6,7 @@ cliente (`backend/app/services/esp32.py`) e contrato de validação (`backend/ap
 ## `GET /` — o dispositivo está vivo?
 Resposta 200 JSON (campos além de `status` são informativos):
 ```json
-{"status":"ok","device":"esp32","model_version":"soilnet-112-20261110","input_size":112,"classes":2,"uptime_s":123,"pump_busy":false,"free_heap":180000,"threshold":0.41}
+{"status":"ok","device":"esp32","model_version":"soilnet-2x-112-20261116","input_size":112,"classes":2,"uptime_s":123,"pump_busy":false,"free_heap":180000,"threshold":0.5}
 ```
 
 ## `POST /upload?pump=0|1` — classificar uma foto
@@ -17,12 +17,12 @@ Resposta 200:
 ```json
 {"classification":"SEVERO","confidence":0.9412,
  "probs":{"LIMPO":0.06,"SEVERO":0.94},
- "cleaning_activated":true,"pump_duration_ms":5000,"reason":"SEVERO com confianca suficiente",
- "inference_ms":812,"model_version":"soilnet-112-20261110"}
+ "cleaning_activated":true,"pump_duration_ms":2000,"reason":"SEVERO com confianca suficiente",
+ "inference_ms":812,"model_version":"soilnet-2x-112-20261116"}
 ```
 | Campo | Obrigatório | Regra (o backend valida; fora disto vira 502) |
 | --- | --- | --- |
-| `classification` | sim | `LIMPO` ou `SEVERO` (o backend recusa qualquer outra com 502) |
+| `classification` | sim | `LIMPO` ("Não precisa limpar") ou `SEVERO` ("Precisa limpar"); o backend recusa qualquer outra com 502 |
 | `confidence` | sim | 0 a 1 |
 | `probs` | não | por classe |
 | `cleaning_activated` | não (padrão false) | a bomba foi ligada |
@@ -32,7 +32,10 @@ Resposta 200:
 Erros do dispositivo (JSON `{"error": "..."}`): 400 corpo vazio · 401 chave errada · 404 rota · 408 corpo incompleto · 413 grande demais · 415 não é JPEG (simulador) · 422 JPEG inválido ou tamanho errado · 500 falha na inferência.
 
 ## Pré-processamento (tem de bater com o treino)
-O front/backend entregam JPEG `S×S` (esticado, sem recorte, qualidade 85). O firmware decodifica para RGB, e para cada canal faz
+O backend entrega JPEG `S×S` (112) feito como no treino do modelo (`ESP32_FRAMING=panel`): a foto é **enquadrada** pelo mesmo código do
+notebook de tratamento (placa recortada em 224×224, gravada como JPEG 95), reduzida para `S×S` (bilinear) e comprimida em JPEG 85
+(`backend/app/services/analysis.py: esp32_jpeg`). O protocolo não muda: o ESP32 só recebe um JPEG `S×S`.
+O firmware decodifica em RGB565 (o treino simulou isso), expande para RGB 0..255 e, para cada canal, faz
 `q = round(pixel / scale) + zero_point` com `scale`/`zero_point` do tensor de entrada (int8). A normalização para [−1, 1] já está dentro do modelo.
 A saída é int8; `prob = (q − zero_point) × scale`.
 

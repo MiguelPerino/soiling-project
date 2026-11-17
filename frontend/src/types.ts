@@ -41,6 +41,8 @@ export interface EngineInfo {
   limiar?: number | null;
   /** Só no modo servidor: limiar <= P(precisa limpar) < revisao_ate => resultado marcado para revisão. */
   revisao_ate?: number | null;
+  /** Como o backend enquadra a foto antes deste modelo (igual ao treino): "panel" (recorta a placa), "center" ou "none" (estica). */
+  enquadramento?: "panel" | "center" | "none" | null;
 }
 
 export interface Config {

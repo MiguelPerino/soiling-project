@@ -8,8 +8,8 @@ São **dois modos**, escolhidos no front para cada foto. Não existe modo "compa
 | --- | --- | --- |
 | Onde roda | no ESP32 (Wi‑Fi local) | no backend, ONNX Runtime na CPU |
 | Aciona a bomba | sim, pela política do firmware | **nunca** |
-| Classes | `ESP32_CLASSES` = `LIMPO,SEVERO` (soilnet v1: NAOLIMPAR/LIMPAR) | `labels.json` com 2 nomes + `classe_positiva` do card (NaoLimpar/Limpar) |
-| Decisão | P(LIMPAR) ≥ 0,41 (firmware) | P(Limpar) ≥ `decisao.limiar` do card (hoje **0,19**) |
+| Classes | `ESP32_CLASSES` = `LIMPO,SEVERO` (soilnet 2x: NAOLIMPAR/LIMPAR) | `labels.json` com 2 nomes + `classe_positiva` do card (NaoLimpar/Limpar) |
+| Decisão | P(LIMPAR) ≥ 0,50 (firmware) | P(Limpar) ≥ `decisao.limiar` do card (hoje **0,19**) |
 | "Revisar" | confiança < `LOW_CONFIDENCE_THRESHOLD` | faixa de dúvida: limiar ≤ P(Limpar) < `SERVER_REVIEW_UNTIL` (0,50) |
 | Tamanho de entrada | `ESP32_INPUT_SIZE` (112) | `SERVER_INPUT_SIZE`, ou `preprocessamento.img_size` do card (224) |
 
@@ -102,7 +102,8 @@ configurada) e use **Exportar fotos revisadas** (`GET /api/export/training.zip`)
 `SEVERO/` (= Limpar) e um `labels.csv`. As fotos saem no tamanho guardado; cada treino as redimensiona.
 
 ## Fora do escopo desta mudança
-O firmware e o protocolo não mudaram. `ai-model/training/` (pipeline do ESP32) passou a ser binário em 17/11 (`docs/02_DATASET_E_TREINO.md`).
+O ESP32 usa o mesmo enquadramento antes de reduzir para 112 (`ESP32_FRAMING`, `05_PROTOCOLO_ESP32.md`); o protocolo não mudou.
+Os notebooks de treino estão em `ai-model/notebooks/` (`02_DATASET_E_TREINO.md`).
 
 ## O que foi e o que não foi testado
 Testado automaticamente (`backend/tests/test_server_engine.py`), com um ONNX **sintético no mesmo formato do ResNet** (NHWC 0..255,

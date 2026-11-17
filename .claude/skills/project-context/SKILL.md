@@ -6,8 +6,9 @@ description: Contexto essencial do Soiling Detection (escopo, arquitetura, o que
 
 **Escopo:** foto de painel solar → `LIMPO` ("Não precisa limpar") / `SEVERO` ("Precisa limpar"). Só duas classes. SEVERO com confiança ≥ limiar aciona bomba de água (só no ESP32). Só isso.
 
-**Arquitetura:** front React → backend FastAPI → ESP32 (HTTP local). **A rede neural roda no ESP32** (TFLite int8, entrada 112×112 no soilnet v1). O backend
-encaminha a foto, valida a resposta e grava arquivo + linha em `analyses` (PostgreSQL). Gemini (opcional) resume e busca.
+**Arquitetura:** front React → backend FastAPI → ESP32 (HTTP local). **A rede neural roda no ESP32** (TFLite int8, soilnet 2x, entrada 112×112). O backend
+enquadra a foto como no treino (`framing.py`), encaminha, valida a resposta e grava arquivo + linha em `analyses` (PostgreSQL).
+Modelos em `models/` (esp32 no git; server baixado da release); treino nos notebooks de `ai-model/notebooks/`. Gemini (opcional) resume e busca.
 
 **Não existe aqui (não reintroduzir):** perda de potência, R$, pvlib, PLD, regressão, inferência no servidor, imagem em bytea.
 

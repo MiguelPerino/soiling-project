@@ -1,7 +1,7 @@
 """Exporta as fotos (já revisadas por pessoas, em geral) para retreinar os modelos.
 
 O zip tem uma pasta por classe (LIMPO/ = não precisa limpar, SEVERO/ = precisa limpar) com `<id>.jpg` e um `labels.csv`. Esse formato é o que
-`ai-model/training/prepare_data.py --extra <pasta>` já lê. As fotos ficam no tamanho em que foram guardadas
+os notebooks de treino (ai-model/notebooks/) leem: uma subpasta por classe, depois de passar pelo notebook de tratamento. As fotos ficam no tamanho em que foram guardadas
 (até UPLOAD_MAX_SIDE px); cada treino as redimensiona para o seu tamanho de entrada. O dataset original NÃO faz parte do zip.
 
 Para o notebook do modelo grande, LIMPO/ corresponde a NaoLimpar e SEVERO/ a Limpar.

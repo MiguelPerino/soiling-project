@@ -10,7 +10,8 @@ Comandos: `npm run dev` (proxy `/api` → :8000) · `npm run typecheck` · `npm 
 Regras de UX (apresentação ao vivo, celular):
 - Classe sempre com **texto + símbolo**, nunca só cor (`LabelBadge`). Cores em `lib/format.ts`; tema escuro por `prefers-color-scheme`.
 - Alvos de toque ≥ 44 px; sem scroll horizontal em 390 px; `aria-live` em resultados; rótulos em todo input.
-- A foto é reduzida **no navegador** para `config.input_size` (esticada, JPEG) em `lib/image.ts`; o tamanho vem de `/api/config`. Não duplique o valor no código.
+- A foto é reduzida **no navegador** para no máximo `config.upload_max_side` px (sem esticar, JPEG) em `lib/image.ts`; o backend faz o resto (enquadramento e tamanho de cada modelo). Não duplique valores no código.
+- Classes: só `LIMPO`/`SEVERO`; o texto da tela ("Não precisa limpar"/"Precisa limpar") vem de `LABEL_STYLE`/`labelText` em `lib/format.ts`.
 - Câmera: `<input type=file capture=environment>` (não exige HTTPS). Não use `getUserMedia` sem tratar o requisito de HTTPS.
 - A bomba só é pedida (`pump=true`) se o usuário deixar marcado; sem chave de admin o backend a bloqueia e a tela explica.
 - Mostrar o estado real: ESP32 offline, erro 504/502, "simulador". Nunca fingir sucesso.

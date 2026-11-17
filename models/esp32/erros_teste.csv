@@ -1,0 +1,24 @@
+arquivo,real,p_limpar_int8
+Dust (20).jpg,LIMPAR,0.0
+Gemini_Generated_Image_3c9pn3c9pn3c9pn3 (1).jpg,LIMPAR,0.0
+Imgdirty_528_1_jpg.rf.4a3197de04b00a4506be8d408a9a1381.jpg,LIMPAR,0.004
+Imgdirty_661_1_jpg.rf.54ddc8376594924d7071689af48da830.jpg,LIMPAR,0.0
+poop-174-_jpg.rf.94aa3c24adc73d1c0ac7e0814af2dc2b.jpg,LIMPAR,0.023
+poop-27-_jpg.rf.9375a0541dd282525dd5523be460f830.jpg,LIMPAR,0.027
+test__Imgdirty_528_1_jpg.rf.83df6876ce297d2ff2adb099b59043ec.jpg,LIMPAR,0.012
+test__Imgdirty_827_1_jpg.rf.a0d37e914fca9ea07afdd67c6424efbe.jpg,LIMPAR,0.07
+train__Imgdirty_130_1_jpg.rf.24c9c524814af7e0f2de4b07c8476cee.jpg,LIMPAR,0.023
+train__Imgdirty_316_1_jpg.rf.7fa0041132d7404d31aa12ad83138053.jpg,LIMPAR,0.0
+train__Imgdirty_626_1_jpg.rf.7002de503d525d6aa992bd94f229128b.jpg,LIMPAR,0.023
+train__Imgdirty_661_1_jpg.rf.a19494e22f7a8d0a5fa1c1208ecd3203.jpg,LIMPAR,0.0
+train__Imgdirty_664_1_jpg.rf.a067fb1e6a444f3e1a273051f888f1cb.jpg,LIMPAR,0.004
+train__Imgdirty_764_1_jpg.rf.706d8ab46ffaffa17f1f58bfdae473a4.jpg,LIMPAR,0.0
+valid__Imgdirty_718_1_jpg.rf.13d43b5021af5eab49373efaee05d5e4.jpg,LIMPAR,0.0
+valid__Imgdirty_842_1_jpg.rf.760a20ddd90bc508f4cfb48fed97f45f.jpg,LIMPAR,0.0
+Dust (4).jpg,NAOLIMPAR,0.996
+Gemini_Generated_Image_ijojw3ijojw3ijoj.jpg,NAOLIMPAR,0.992
+train__Imgclean_1031_0_jpg.rf.4f4e6b9094a5bfd08385fa83276f16ac.jpg,NAOLIMPAR,0.996
+train__Imgclean_1163_0_jpg.rf.aef8b11b215d930e8d131a9205bc9648.jpg,NAOLIMPAR,0.996
+train__Imgdirty_177_1_jpg.rf.21b2dbafe188eb97e9a92581c1612842.jpg,NAOLIMPAR,0.996
+train__Imgdirty_410_1_jpg.rf.91c08b5cdfe603a12d39476768808283.jpg,NAOLIMPAR,0.996
+valid__Imgdirty_742_1_jpg.rf.43bd973f6d426e349b1e06f1b12b7ac2.jpg,NAOLIMPAR,0.996

@@ -8,6 +8,16 @@ from pathlib import Path
 from app.labels import parse_classes
 
 
+FRAMING_MODES = ("panel", "center", "none")
+
+
+def _framing(value: str) -> str:
+    v = value.strip().lower()
+    if v not in FRAMING_MODES:
+        raise ValueError(f"enquadramento inválido: {value!r} (use {', '.join(FRAMING_MODES)})")
+    return v
+
+
 @dataclass(frozen=True)
 class Settings:
     database_url: str = "sqlite:///./data/app.db"
@@ -15,10 +25,11 @@ class Settings:
     esp32_url: str = ""                          # ex.: http://192.168.0.50 (vazio = ESP32 não configurado)
     esp32_key: str = ""                          # segredo compartilhado opcional (cabeçalho X-Device-Key)
     esp32_timeout_s: float = 30.0
-    input_size: int = 112                        # lado da imagem do modelo do ESP32 (ESP32_INPUT_SIZE; igual ao do treino/firmware). soilnet v1 = 112
-    esp32_classes: tuple[str, ...] = ("LIMPO", "SEVERO")   # ESP32_CLASSES; soilnet v1 é binário (NAOLIMPAR->LIMPO, LIMPAR->SEVERO)
+    input_size: int = 112                        # lado da imagem do modelo do ESP32 (ESP32_INPUT_SIZE; igual ao do treino/firmware). soilnet 2x = 112
+    esp32_classes: tuple[str, ...] = ("LIMPO", "SEVERO")   # ESP32_CLASSES; soilnet é binário (NAOLIMPAR->LIMPO, LIMPAR->SEVERO)
+    esp32_framing: str = "panel"                 # ESP32_FRAMING: panel (soilnet 2x, dataset tratado 224) | center | none (estica; modelos do dataset bruto)
     jpeg_quality: int = 85
-    low_confidence_threshold: float = 0.60
+    low_confidence_threshold: float = 0.50         # LOW_CONFIDENCE_THRESHOLD (modo ESP32): igual ao CONF_THRESHOLD do firmware (models/esp32/model_card.json)
     admin_api_key: str = ""                      # vazio = sem proteção (só desenvolvimento local)
     gemini_api_key: str = ""
     gemini_model: str = ""                       # sem padrão de propósito: nomes de modelo mudam; defina no .env
@@ -52,8 +63,9 @@ class Settings:
             esp32_timeout_s=float(e.get("ESP32_TIMEOUT_S", "30")),
             input_size=int(e.get("ESP32_INPUT_SIZE", e.get("INPUT_SIZE", "112"))),     # INPUT_SIZE = nome antigo, ainda aceito
             esp32_classes=tuple(l.value for l in parse_classes(e.get("ESP32_CLASSES", "LIMPO,SEVERO"))),
+            esp32_framing=_framing(e.get("ESP32_FRAMING", "panel")),
             jpeg_quality=int(e.get("JPEG_QUALITY", "85")),
-            low_confidence_threshold=float(e.get("LOW_CONFIDENCE_THRESHOLD", "0.60")),
+            low_confidence_threshold=float(e.get("LOW_CONFIDENCE_THRESHOLD", "0.50")),
             admin_api_key=e.get("ADMIN_API_KEY", ""),
             gemini_api_key=e.get("GEMINI_API_KEY", ""),
             gemini_model=e.get("GEMINI_MODEL", ""),
@@ -62,7 +74,7 @@ class Settings:
             server_model_dir=e.get("SERVER_MODEL_DIR", "models/server"),
             server_input_size=int(e.get("SERVER_INPUT_SIZE", "0")),
             server_review_until=float(e.get("SERVER_REVIEW_UNTIL", "0.5")),
-            server_framing=e.get("SERVER_FRAMING", "panel").strip().lower(),
+            server_framing=_framing(e.get("SERVER_FRAMING", "panel")),
             upload_max_side=int(e.get("UPLOAD_MAX_SIDE", "512")),
             weather_enabled=e.get("WEATHER_ENABLED", "1").strip().lower() in {"1", "true", "yes", "sim"},
             panel_lat=float(e.get("PANEL_LAT", "-23.3103")),

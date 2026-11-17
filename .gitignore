@@ -7,17 +7,13 @@ node_modules/
 frontend/dist/
 backend/data/
 backend/storage/
-ai-model/data/*
-!ai-model/data/.gitkeep
-ai-model/models/*
 models/server/*
 !models/server/.gitkeep
 !models/server/model.lock
-!ai-model/models/.gitkeep
 *.tfstate*
 .terraform/
 infra/terraform/terraform.tfvars
 firmware/esp32/.pio/
 firmware/esp32/src/secrets.h
-firmware/esp32/src/model_data.h
+# firmware/esp32/src/model_data.h é versionado: gerado de models/esp32/model.tflite (ai-model/conversion/tflite_to_header.py)
 .DS_Store

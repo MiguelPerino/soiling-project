@@ -3,7 +3,7 @@
 Serve para: testar backend e front sem hardware, ensaiar a apresentação, e ser a "imagem de reserva" se o ESP32 falhar.
 NÃO prova que o modelo cabe no ESP32. Isso só se prova no hardware (docs/04_FIRMWARE_ESP32.md).
 
-    python -m esp32_simulator.server --model-dir ai-model/models/current --port 8081
+    python -m esp32_simulator.server --model-dir models/esp32 --port 8081      # o modelo gravado no ESP32
     python -m esp32_simulator.server --demo-model            # modelo sintético de teste (cor dominante), NÃO classifica sujeira
 """
 from __future__ import annotations
@@ -136,7 +136,7 @@ def load_engine(model_dir: str):
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--model-dir", default="ai-model/models/current")
+    ap.add_argument("--model-dir", default="models/esp32")
     ap.add_argument("--demo-model", action="store_true", help="usa modelo sintético (NÃO classifica sujeira)")
     ap.add_argument("--demo-size", type=int, default=96)
     ap.add_argument("--host", default="0.0.0.0")

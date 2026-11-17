@@ -3,7 +3,7 @@
 | Método | Rota | Auth | Descrição |
 | --- | --- | --- | --- |
 | GET | `/api/health` | — | banco, ESP32 configurado, modelo do servidor carregado, Gemini, admin protegido |
-| GET | `/api/config` | — | `engines.esp32` e `engines.server` (`disponivel`, `classes` = `["LIMPO","SEVERO"]`, `input_size`, `aciona_bomba`, `motivo`; no `server` também `versao`, `limiar` e `revisao_ate`), `rotulos` (`{"LIMPO":"Não precisa limpar","SEVERO":"Precisa limpar"}`), `upload_max_side`, `jpeg_quality`, `max_upload_mb`, limiar, flags |
+| GET | `/api/config` | — | `engines.esp32` e `engines.server` (`disponivel`, `classes` = `["LIMPO","SEVERO"]`, `input_size`, `aciona_bomba`, `motivo`, `enquadramento` (`panel`/`center`/`none`); no `server` também `versao`, `limiar` e `revisao_ate`), `rotulos` (`{"LIMPO":"Não precisa limpar","SEVERO":"Precisa limpar"}`), `upload_max_side`, `jpeg_quality`, `max_upload_mb`, limiar, flags |
 | GET | `/api/weather/advice` | — | recomendação de chuva (Open‑Meteo): `nivel` (`limpar_agora`/`avaliar`/`adiar`/`indisponivel`), mm passados e próximos 24 h, limiares, crédito. Sempre 200; só informa |
 | GET | `/api/devices/status` | — | ESP32 online? (`online`, `latency_ms`, `info`) — nunca dá erro, devolve `online:false` |
 | POST | `/api/analyze` | `X-API-Key` só para a bomba | multipart: `file`, `engine` (`esp32` padrão ou `server`; qualquer outro valor dá 422), `pump` (padrão true; ignorado no `server`). Devolve `{analise, bomba_bloqueada_por_falta_de_chave}` |

@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <cstring>
 
-enum class Label : int { LIMPO = 0, MODERADO = 1, SEVERO = 2 };
+enum class Label : int { LIMPO = 0, SEVERO = 1 };   // "Não precisa limpar" / "Precisa limpar"
 
 struct PumpDecision {
   bool     activate;

@@ -1,6 +1,7 @@
 """Inferência com ONNX Runtime: leve, sem PyTorch, roda no contêiner da API.
 
-Um "modelo" é uma pasta (padrão models/current/) com três arquivos gerados pelo treino:
+Usado só pelo modelo SINTÉTICO de demonstração/testes (tiny_model.py). O modelo real do ESP32 é TFLite (tflite_engine.py).
+Um "modelo" é uma pasta com três arquivos:
     model.onnx        entrada "input" (N,3,H,W) float32; saída "logits" (N,2)
     labels.json       ["LIMPO","SEVERO"], na ordem das saídas
     model_card.json   versão, arquitetura, tamanho de entrada, média/desvio, métricas, limiar de confiança

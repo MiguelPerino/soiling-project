@@ -5,9 +5,10 @@
 2. O **front** reduz a foto para no máximo `UPLOAD_MAX_SIDE` px (padrão 512, sem esticar) e comprime em JPEG (`/api/config` informa os valores e quais modos estão disponíveis).
 3. `POST /api/analyze` (multipart: `file`, `engine` = `esp32` (padrão) ou `server`, `pump`).
 4. O **backend** valida o arquivo (≤ `MAX_UPLOAD_MB`, é imagem), corrige a orientação e guarda a foto normalizada. Depois:
-   - **`esp32`**: gera o JPEG `ESP32_INPUT_SIZE`×`ESP32_INPUT_SIZE` (esticado, igual ao treino) e envia `POST {ESP32_URL}/upload?pump=0|1`.
+   - **`esp32`**: enquadra a foto como no treino (`framing.py`, 224), reduz para `ESP32_INPUT_SIZE`×`ESP32_INPUT_SIZE` (112), JPEG 85, e envia `POST {ESP32_URL}/upload?pump=0|1`.
      O ESP32 decodifica, quantiza, roda a rede, aplica a política da bomba e responde JSON (`05_PROTOCOLO_ESP32.md`).
-   - **`server`**: o modelo grande (ONNX, `SERVER_MODEL_DIR`) classifica a foto no tamanho que ele espera. **Não há bomba.**
+   - **`server`**: enquadra a foto do mesmo jeito (224) e o modelo grande (ONNX, `SERVER_MODEL_DIR`) classifica. **Não há bomba.**
+   Os dois modelos são binários: `LIMPO` ("Não precisa limpar") ou `SEVERO` ("Precisa limpar"), decididos por limiar.
 5. O backend valida o resultado, grava o JPEG em `STORAGE_DIR` e uma linha em `analyses` com o campo `engine` (se algo falhar, **nada** é gravado).
 6. O front mostra motor, classe, confiança, bomba (só no ESP32) e tempos; histórico e painel se atualizam.
 
@@ -15,6 +16,7 @@
 ```
 frontend (React) ── /api/* ──▶ backend (FastAPI)
                                  ├─ services/analysis.py   prepara imagem, orquestra
+                                 ├─ services/framing.py    enquadramento do notebook de tratamento (os dois modelos)
                                  ├─ services/esp32.py      cliente HTTP do ESP32 (valida a resposta e as classes)
                                  ├─ services/server_model.py modelo grande ONNX (opcional; nunca aciona a bomba)
                                  ├─ services/export.py     zip de fotos revisadas para retreino
@@ -22,6 +24,9 @@ frontend (React) ── /api/* ──▶ backend (FastAPI)
                                  ├─ database/repository.py SQLAlchemy (PostgreSQL / SQLite)
                                  └─ services/assistant/    Gemini + plano B por regras
 firmware (ESP32) ◀── HTTP local ── backend
+models/esp32 (soilnet 2x, no git) ─▶ firmware/esp32/src/model_data.h + simulador
+models/server (ResNet50, release do GitHub) ─▶ backend
+ai-model/notebooks (tratamento → treino ResNet / treino soilnet) ─▶ models/
 ```
 
 ## Falhas previstas

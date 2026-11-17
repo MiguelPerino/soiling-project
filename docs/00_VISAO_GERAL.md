@@ -12,7 +12,8 @@ São **duas classes**. O código vai na API, no banco e no protocolo do ESP32; o
 | `LIMPO` | Não precisa limpar | `NaoLimpar` / `NAOLIMPAR` | nenhuma |
 | `SEVERO` | Precisa limpar | `Limpar` / `LIMPAR` (classe positiva) | ESP32: acionar a bomba se a confiança ≥ limiar. Servidor: só informa |
 
-Os dois modelos decidem por **limiar** sobre P(Limpar), não pela classe de maior probabilidade (ESP32: 0,41; servidor: 0,19).
+Os dois modelos decidem por **limiar** sobre P(Limpar), não pela classe de maior probabilidade (ESP32: 0,50; servidor: 0,19).
+Antes dos dois modelos, a foto é **enquadrada** (placa recortada) pelo mesmo código que tratou o dataset de treino.
 
 `confidence` (0–1) é o quanto a rede "tem certeza" da classe. **Não é percentual de sujeira.** O modelo não mede quantidade de sujeira.
 
@@ -27,8 +28,9 @@ Os dois modelos decidem por **limiar** sobre P(Limpar), não pela classe de maio
 ## Decisões nossas (e por quê)
 | Decisão | Motivo |
 | --- | --- |
-| Rede pequena (soilnet v1: 67 mil parâmetros, entrada 112×112, int8, 114 KB) | `esp32dev` não tem PSRAM; ~320 KB de RAM utilizável |
-| Treino em Keras → TFLite int8 | é o caminho nativo do TensorFlow Lite Micro |
+| Rede pequena no ESP32 (soilnet 2x: 136 mil parâmetros, entrada 112×112, int8, 192 KB) | `esp32dev` não tem PSRAM; ~320 KB de RAM utilizável |
+| Treino em notebooks (Keras → TFLite int8 no ESP32; PyTorch → ONNX no servidor) | caminho nativo do TFLite Micro; ResNet pré-treinada para o servidor |
+| Mesmo enquadramento no treino e na inferência | o modelo só vê, em uso, fotos preparadas como as do treino |
 | Normalização dentro do modelo | o firmware só entrega pixels e quantiza com a escala do tensor; menos chance de divergir do treino |
 | Política da bomba no firmware | segurança física não pode depender de rede nem do servidor |
 | Simulador do ESP32 | testar e ensaiar sem hardware; "imagem de reserva" na apresentação |

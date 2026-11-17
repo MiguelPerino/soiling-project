@@ -15,8 +15,11 @@ Diferenças em relação ao notebook (só de entrada/saída, não de lógica): r
 """
 from __future__ import annotations
 
+from io import BytesIO
+
 import cv2
 import numpy as np
+from PIL import Image
 
 # Valores da célula 1 (CFG) do notebook que gerou o dataset do resnet50-224-20261116.
 IMG_SIZE = 224
@@ -25,6 +28,7 @@ FRAME_MARGIN = 0.06
 CENTER_FRAC = 0.90
 WIDE_RATIO = 1.5
 MODES = ("panel", "center", "none")
+DATASET_JPEG_QUALITY = 95    # o notebook gravou cada foto tratada em JPEG 95, sem subamostragem de cor (4:4:4)
 
 
 def trim_borders(img, tol=6.0, max_cut=0.2):
@@ -142,3 +146,17 @@ def frame_image(img, size=IMG_SIZE, mode=FRAMING, margin=FRAME_MARGIN, center_fr
     info["metodo"] = ("placa" if info["deteccao"] == "placa" else "central") + "+" + how
     interp = cv2.INTER_AREA if max(part.shape[:2]) > size else cv2.INTER_CUBIC
     return cv2.resize(part, (size, size), interpolation=interp), info
+
+
+def as_saved_in_dataset(framed: np.ndarray) -> np.ndarray:
+    """A foto tratada como ela ficou no dataset de treino: gravada em JPEG 95 sem subamostragem (célula 4 do notebook de
+    tratamento, save_jpg) e lida de volta. Os dois treinos (ResNet e ESP32) partiram desses arquivos."""
+    buf = BytesIO()
+    Image.fromarray(framed).save(buf, "JPEG", quality=DATASET_JPEG_QUALITY, subsampling=0)
+    return np.asarray(Image.open(BytesIO(buf.getvalue())).convert("RGB"))
+
+
+def treated_224(rgb: np.ndarray, mode: str = FRAMING, size: int = IMG_SIZE, **kw) -> tuple[np.ndarray, dict]:
+    """Foto RGB -> (foto tratada size×size como no dataset, info). frame_image + o JPEG 95 do dataset."""
+    out, info = frame_image(np.ascontiguousarray(rgb), size, mode, **kw)
+    return as_saved_in_dataset(out), info
