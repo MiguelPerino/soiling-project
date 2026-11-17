@@ -1,11 +1,13 @@
 import type { Label } from "../types";
 
-/** Cores e textos das classes. As cores seguem o design SolarEye (verde / âmbar / vermelho). */
-export const LABEL_STYLE: Record<Label, { solid: string; desc: string }> = {
-  LIMPO: { solid: "#27aa77", desc: "Painel limpo" },
-  MODERADO: { solid: "#edb23b", desc: "Poeira moderada" },
-  SEVERO: { solid: "#e75c5e", desc: "Sujeira severa" },
+/** Cores e textos das duas classes (verde / vermelho). O código (LIMPO/SEVERO) só aparece na API e no banco. */
+export const LABEL_STYLE: Record<Label, { solid: string; text: string; desc: string }> = {
+  LIMPO: { solid: "#27aa77", text: "Não precisa limpar", desc: "O painel não precisa de limpeza" },
+  SEVERO: { solid: "#e75c5e", text: "Precisa limpar", desc: "O painel precisa de limpeza" },
 };
+
+/** Texto da classe na tela. Valor desconhecido (ex.: análise antiga de 3 classes) aparece como veio. */
+export const labelText = (l: string) => LABEL_STYLE[l as Label]?.text ?? l;
 
 export const pct = (v: number | null | undefined) => (v == null ? "—" : `${(v * 100).toFixed(0)}%`);
 /** Uma casa decimal, com vírgula: 0.942 -> "94,2%". */

@@ -19,13 +19,14 @@ from app.services.assistant.gemini import GeminiClient, GeminiError
 
 SYSTEM_FILTER = (
     "Você converte perguntas em português sobre análises de fotos de painéis solares em um filtro JSON. "
-    "Classes possíveis: LIMPO, MODERADO, SEVERO. Campos opcionais: labels (lista de classes), since e until "
+    "Classes possíveis (só duas): LIMPO = não precisa limpar, SEVERO = precisa limpar. Campos opcionais: labels (lista de classes), since e until "
     "(ISO 8601 com fuso), needs_review (bool: fotos de baixa confiança sem revisão), min_confidence e "
     "max_confidence (0 a 1), cleaning_activated (bool: a bomba foi acionada), text (trecho do nome do arquivo). "
     "Responda SOMENTE o objeto JSON; omita campos que a pergunta não menciona. Não invente filtros."
 )
 SYSTEM_SUMMARY = (
-    "Você escreve resumos curtos (no máximo 4 frases) em português sobre classificação de sujeira em painéis solares. "
+    "Você escreve resumos curtos (no máximo 4 frases) em português sobre fotos de painéis solares classificadas em duas classes: "
+    "LIMPO = não precisa limpar e SEVERO = precisa limpar (o modelo não mede o grau da sujeira). "
     "Use APENAS os números fornecidos; não calcule porcentagens nem cite valores que não estejam nos dados. "
     "Não dê recomendações de manutenção além de sugerir revisar fotos marcadas para revisão."
 )
@@ -46,7 +47,9 @@ def _allowed_numbers(payload: dict) -> set[str]:
 def deterministic_summary(question: str, f: SearchFilter, total: int, stats: dict) -> str:
     por = stats["por_rotulo"]
     parts = [f"Encontrei {total} análise(s) para: {describe_filter(f)}."]
-    parts.append(f"No histórico inteiro: {stats['total']} análises — {por['LIMPO']} limpas, {por['MODERADO']} moderadas, {por['SEVERO']} severas.")
+    precisa = lambda n: "precisa" if n == 1 else "precisam"
+    parts.append(f"No histórico inteiro: {stats['total']} análise(s) — {por['LIMPO']} não {precisa(por['LIMPO'])} de limpeza "
+                 f"e {por['SEVERO']} {precisa(por['SEVERO'])} de limpeza.")
     if stats["para_revisao"]:
         parts.append(f"{stats['para_revisao']} análise(s) com baixa confiança aguardam revisão humana.")
     return " ".join(parts)

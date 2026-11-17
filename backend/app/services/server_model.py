@@ -1,14 +1,20 @@
-"""Modelo grande opcional (ex.: ResNet) rodando NO SERVIDOR com ONNX Runtime (sem PyTorch/TensorFlow).
+"""Modelo grande opcional (ex.: ResNet50) rodando NO SERVIDOR com ONNX Runtime (sem PyTorch/TensorFlow).
 
-Serve para análise mais robusta e para o time treinar/trocar o modelo sem mexer no firmware. Ele NUNCA aciona a bomba:
+Classificação BINÁRIA: "Precisa limpar" (SEVERO) ou "Não precisa limpar" (LIMPO). Ele NUNCA aciona a bomba:
 só o firmware do ESP32 decide isso.
 
 Contrato do modelo (docs/12_MODELO_NO_SERVIDOR.md): uma pasta (SERVER_MODEL_DIR) com
-    model.onnx        entrada (N,3,H,W) float32 NCHW; saída (N,K) com logits (ou probabilidades se o card disser "output":"probs")
-    labels.json       as classes na ordem das saídas, ex.: ["LIMPO","MODERADO","SEVERO"] (o número de classes vem daqui)
-    model_card.json   version, input_size, mean, std, output (opcional)
-O lado da entrada pode ser trocado sem editar código: SERVER_INPUT_SIZE (ou "input_size" no card).
-O pré-processamento vem do card para treino e inferência não divergirem.
+    model.onnx        2 saídas. Entrada NHWC (N,H,W,3) ou NCHW (N,3,H,W), float32 RGB (o layout é lido do próprio ONNX)
+    labels.json       os 2 nomes de classe na ordem das saídas, ex.: ["NaoLimpar","Limpar"] ou ["LIMPO","SEVERO"]
+    model_card.json   o card que o notebook de treino gera (versao, classe_positiva, decisao.limiar, onnx.input/output...)
+
+Pré-processamento: o MESMO enquadramento do notebook de tratamento (app/services/framing.py: acha a placa, recorta um
+quadrado em volta, 224×224). Modo pelo card (preprocessamento.enquadramento) ou SERVER_FRAMING: panel | center | none.
+
+Regra de decisão (igual à do ESP32 binário, tools/esp32_simulator/tflite_engine.py):
+    P(positiva) >= limiar  -> SEVERO (precisa limpar), senão LIMPO.
+    confiança = probabilidade da classe escolhida.
+    faixa de dúvida: limiar <= P(positiva) < revisao_ate -> SEVERO, mas marcado para revisão humana.
 """
 from __future__ import annotations
 
@@ -20,11 +26,15 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-from app.labels import Label, UnknownClassError, parse_classes
+from app.labels import Label
+from app.services import framing as fr
 
-DEFAULT_MEAN = (0.485, 0.456, 0.406)       # ImageNet
+DEFAULT_MEAN = (0.485, 0.456, 0.406)       # ImageNet (só se a entrada for 0..1 normalizada)
 DEFAULT_STD = (0.229, 0.224, 0.225)
 DEFAULT_SIZE = 224
+DEFAULT_THRESHOLD = 0.5
+DEFAULT_REVIEW_UNTIL = 0.5                 # PROVISÓRIO: topo da faixa de dúvida (SERVER_REVIEW_UNTIL)
+SYSTEM_NAMES = {"LIMPO": Label.LIMPO, "SEVERO": Label.SEVERO}
 
 
 class ServerModelUnavailable(RuntimeError):
@@ -34,10 +44,13 @@ class ServerModelUnavailable(RuntimeError):
 @dataclass(frozen=True)
 class ServerPrediction:
     label: Label
-    confidence: float
-    probs: dict[str, float]
+    confidence: float            # probabilidade da classe escolhida
+    p_positive: float            # P(precisa limpar)
+    low_confidence: bool         # caiu na faixa de dúvida
+    probs: dict[str, float]      # {"LIMPO": ..., "SEVERO": ...}
     latency_ms: float
     model_version: str
+    framing: str | None = None   # como a foto foi enquadrada (ex.: "placa+recorte", "central+recorte"); None = esticada
 
 
 def softmax(x: np.ndarray) -> np.ndarray:
@@ -46,18 +59,69 @@ def softmax(x: np.ndarray) -> np.ndarray:
     return e / e.sum(axis=-1, keepdims=True)
 
 
+def _get(d: dict, *path, default=None):
+    for key in path:
+        if not isinstance(d, dict) or key not in d:
+            return default
+        d = d[key]
+    return d
+
+
+def map_classes(names: list, card: dict) -> tuple[Label, Label]:
+    """Traduz os 2 nomes do labels.json (ordem das saídas) para (LIMPO, SEVERO) do sistema.
+
+    Aceita os nomes do sistema direto (["LIMPO","SEVERO"]) ou os do modelo + a classe positiva do card
+    ("classe_positiva": "Limpar" -> SEVERO; a outra vira LIMPO).
+    """
+    if not isinstance(names, list) or len(names) != 2 or not all(isinstance(n, str) and n.strip() for n in names):
+        raise ValueError(f"labels.json precisa ter exatamente 2 nomes de classe (recebi {names!r})")
+    upper = [n.strip().upper() for n in names]
+    if len(set(upper)) != 2:
+        raise ValueError(f"classes repetidas em labels.json: {names}")
+    if set(upper) == set(SYSTEM_NAMES):
+        return tuple(SYSTEM_NAMES[u] for u in upper)                 # type: ignore[return-value]
+    positive = card.get("classe_positiva") or card.get("positive_label")
+    if not isinstance(positive, str) or positive.strip().upper() not in upper:
+        raise ValueError(f"model_card.json precisa de 'classe_positiva' (a classe que significa 'precisa limpar') "
+                         f"com um dos nomes de labels.json {names}")
+    pos = upper.index(positive.strip().upper())
+    return tuple(Label.SEVERO if i == pos else Label.LIMPO for i in range(2))   # type: ignore[return-value]
+
+
 class ServerModel:
-    def __init__(self, session, card: dict, labels: tuple[Label, ...], input_size: int = 0) -> None:
+    def __init__(self, session, card: dict, labels: tuple[Label, Label], input_size: int = 0,
+                 review_until: float | None = None, framing: str = fr.FRAMING) -> None:
         self.session, self.card, self.labels = session, card, labels
-        self.version = str(card.get("version", "desconhecida"))
-        self.size = int(input_size or card.get("input_size") or DEFAULT_SIZE)
+        inp, out = session.get_inputs()[0], session.get_outputs()[0]
+        self.input_name = inp.name
+        self.version = str(card.get("versao") or card.get("version") or "desconhecida")
+        self.nhwc = _layout(inp.shape, card) == "NHWC"
+        self.size = int(input_size or _get(card, "preprocessamento", "img_size") or card.get("input_size")
+                        or _fixed_side(inp.shape, self.nhwc) or DEFAULT_SIZE)
+        faixa = _get(card, "onnx", "input", "faixa") or card.get("input_range")
+        self.raw_0_255 = isinstance(faixa, list) and len(faixa) == 2 and float(faixa[1]) > 1.0   # normalização dentro do ONNX
         self.mean = np.asarray(card.get("mean", DEFAULT_MEAN), dtype=np.float32)
         self.std = np.asarray(card.get("std", DEFAULT_STD), dtype=np.float32)
-        self.outputs_probs = card.get("output") == "probs"
-        self.input_name = session.get_inputs()[0].name
+        self.outputs_probs = (card.get("output") == "probs" or _get(card, "onnx", "output", "name") == "probs"
+                              or out.name == "probs")
+        self.positive = labels.index(Label.SEVERO)
+        self.threshold = float(_get(card, "decisao", "limiar", default=card.get("limiar", DEFAULT_THRESHOLD)))
+        if not 0.0 < self.threshold < 1.0:
+            raise ValueError(f"limiar de decisão fora de (0, 1): {self.threshold}")
+        ru = _get(card, "decisao", "revisao_ate")
+        ru = float(ru if ru is not None else (review_until if review_until is not None else DEFAULT_REVIEW_UNTIL))
+        self.review_until = min(max(ru, self.threshold), 1.0)      # nunca abaixo do limiar
+        pre = card.get("preprocessamento") if isinstance(card.get("preprocessamento"), dict) else {}
+        self.framing = str(pre.get("enquadramento") or framing or "none").lower()
+        if self.framing not in fr.MODES:
+            raise ValueError(f"enquadramento inválido: {self.framing!r} (use {', '.join(fr.MODES)})")
+        self.frame_margin = float(pre.get("margem", fr.FRAME_MARGIN))
+        self.center_frac = float(pre.get("frac_central", fr.CENTER_FRAC))
+        self.wide_ratio = float(pre.get("wide_ratio", fr.WIDE_RATIO))
 
     @classmethod
-    def load(cls, model_dir: str | Path, input_size: int = 0) -> "ServerModel":
+    def load(cls, model_dir: str | Path, input_size: int = 0, review_until: float | None = None,
+             framing: str = fr.FRAMING) -> "ServerModel":
         d = Path(model_dir)
         missing = [n for n in ("model.onnx", "labels.json", "model_card.json") if not (d / n).is_file()]
         if missing:
@@ -67,36 +131,84 @@ class ServerModel:
         except ImportError as exc:
             raise ServerModelUnavailable("onnxruntime não está instalado (pip install onnxruntime)") from exc
         try:
-            labels = parse_classes(json.loads((d / "labels.json").read_text(encoding="utf-8")))
             card = json.loads((d / "model_card.json").read_text(encoding="utf-8"))
-        except (UnknownClassError, ValueError, TypeError) as exc:
+            if not isinstance(card, dict):
+                raise ValueError("model_card.json não é um objeto JSON")
+            labels = map_classes(json.loads((d / "labels.json").read_text(encoding="utf-8")), card)
+        except (ValueError, TypeError) as exc:
             raise ServerModelUnavailable(f"labels.json ou model_card.json inválido: {exc}") from exc
         try:
             session = ort.InferenceSession(str(d / "model.onnx"), providers=["CPUExecutionProvider"])
         except Exception as exc:
             raise ServerModelUnavailable(f"não consegui abrir o ONNX: {type(exc).__name__}: {exc}") from exc
         out_dim = session.get_outputs()[0].shape[-1]
-        if isinstance(out_dim, int) and out_dim != len(labels):
-            raise ServerModelUnavailable(f"o modelo tem {out_dim} saídas mas labels.json tem {len(labels)} classes")
-        return cls(session, card, labels, input_size)
+        if isinstance(out_dim, int) and out_dim != 2:
+            raise ServerModelUnavailable(f"o modelo tem {out_dim} saídas; o sistema é binário (2: não precisa limpar / precisa limpar)")
+        try:
+            return cls(session, card, labels, input_size, review_until, framing)
+        except (ValueError, TypeError) as exc:
+            raise ServerModelUnavailable(f"model_card.json inválido: {exc}") from exc
+
+    def frame(self, img: Image.Image) -> tuple[np.ndarray, str | None]:
+        """Foto RGB -> (size×size×3 uint8, como foi enquadrada). Com enquadramento, é o código do notebook;
+        sem ("none"), estica a foto inteira (sem recorte)."""
+        rgb = img.convert("RGB")
+        if self.framing == "none":
+            return np.asarray(rgb.resize((self.size, self.size), Image.BILINEAR)), None
+        out, info = fr.treated_224(np.asarray(rgb), self.framing, self.size, margin=self.frame_margin,
+                                   center_frac=self.center_frac, wide_ratio=self.wide_ratio)
+        return out, info["metodo"]
+
+    def to_tensor(self, arr: np.ndarray) -> np.ndarray:
+        """size×size×3 (0..255) -> tensor do ONNX. Faixa e layout seguem o card/ONNX."""
+        x = arr.astype(np.float32)
+        if not self.raw_0_255:
+            x = (x / 255.0 - self.mean) / self.std
+        x = x if self.nhwc else x.transpose(2, 0, 1)
+        return x[None].astype(np.float32)
+
+    def preprocess(self, img: Image.Image) -> np.ndarray:
+        return self.to_tensor(self.frame(img)[0])
+
+    def decide(self, p_positive: float) -> tuple[Label, float, bool]:
+        """(classe, confiança da classe escolhida, faixa de dúvida?)."""
+        if p_positive >= self.threshold:
+            return Label.SEVERO, p_positive, p_positive < self.review_until
+        return Label.LIMPO, 1.0 - p_positive, False
 
     def predict(self, img: Image.Image) -> ServerPrediction:
         t0 = time.perf_counter()
-        arr = np.asarray(img.convert("RGB").resize((self.size, self.size), Image.BILINEAR), dtype=np.float32) / 255.0
-        x = ((arr - self.mean) / self.std).transpose(2, 0, 1)[None].astype(np.float32)
-        out = np.asarray(self.session.run(None, {self.input_name: x})[0], dtype=np.float32)
+        framed, how = self.frame(img)
+        out = np.asarray(self.session.run(None, {self.input_name: self.to_tensor(framed)})[0], dtype=np.float32)
         p = (out if self.outputs_probs else softmax(out))[0]
-        i = int(p.argmax())
-        return ServerPrediction(self.labels[i], float(p[i]), {l.value: float(p[k]) for k, l in enumerate(self.labels)},
-                                (time.perf_counter() - t0) * 1000, self.version)
+        p_pos = float(np.clip(p[self.positive], 0.0, 1.0))
+        label, conf, doubt = self.decide(p_pos)
+        return ServerPrediction(label, conf, p_pos, doubt, {Label.LIMPO.value: 1.0 - p_pos, Label.SEVERO.value: p_pos},
+                                (time.perf_counter() - t0) * 1000, self.version, how)
 
     def info(self) -> dict:
-        return {"version": self.version, "input_size": self.size, "classes": [l.value for l in self.labels]}
+        return {"version": self.version, "input_size": self.size, "classes": [l.value for l in (Label.LIMPO, Label.SEVERO)],
+                "limiar": self.threshold, "revisao_ate": self.review_until, "enquadramento": self.framing}
 
 
-def try_load(model_dir: str, input_size: int = 0) -> tuple[ServerModel | None, str | None]:
+def _layout(shape, card: dict) -> str:
+    declared = str(_get(card, "onnx", "input", "layout") or card.get("layout") or "").upper()
+    if declared in {"NHWC", "NCHW"}:
+        return declared
+    return "NHWC" if len(shape) == 4 and shape[-1] == 3 else "NCHW"
+
+
+def _fixed_side(shape, nhwc: bool) -> int | None:
+    if len(shape) != 4:
+        return None
+    side = shape[1] if nhwc else shape[2]
+    return side if isinstance(side, int) else None
+
+
+def try_load(model_dir: str, input_size: int = 0, review_until: float | None = None,
+             framing: str = fr.FRAMING) -> tuple[ServerModel | None, str | None]:
     """Carrega se existir; devolve (modelo, motivo_da_indisponibilidade). Nunca levanta: o servidor sobe sem o modelo grande."""
     try:
-        return ServerModel.load(model_dir, input_size), None
+        return ServerModel.load(model_dir, input_size, review_until, framing), None
     except ServerModelUnavailable as exc:
         return None, str(exc)

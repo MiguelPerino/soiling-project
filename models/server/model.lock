@@ -1,0 +1,10 @@
+# Modelo grande do modo Servidor. Os pesos NÃO ficam no git (94 MB): baixe com scripts/download-model.sh (Windows: .ps1).
+# O build do Docker confere estes hashes e falha se o modelo estiver faltando ou for outro.
+# Trocar de modelo: publique uma nova release no GitHub com os 3 arquivos, atualize "tag" e os hashes abaixo
+# (sha256sum model.onnx labels.json model_card.json) e faça commit deste arquivo.
+repo libinayantonini-sketch/soiling-project
+tag modelo-resnet50-20261116
+versao resnet50-224-20261116
+sha256 14373f1fb81c1e2de85685751aa22ba2c5c932bd09512565c895bb49426cd657 model.onnx
+sha256 a1ddc602d1d46eb2ef998a89e5b5ed480c3f1a46d12c58bbc905a475add0d19e labels.json
+sha256 d518e39a1bc9e8a3c5b9ae2a68f65df7bb702179e45c8323f88cc455ae22fc96 model_card.json

@@ -1,6 +1,6 @@
 """Converte model.tflite em um array C (model_data.h) para o firmware, e confere o tamanho.
 
-    python conversion/tflite_to_header.py models/current/model.tflite ../firmware/esp32/src/model_data.h
+    python ai-model/conversion/tflite_to_header.py models/esp32/model.tflite firmware/esp32/src/model_data.h
 Equivale a `xxd -i`, sem depender dele (Windows).
 """
 import sys

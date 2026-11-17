@@ -41,10 +41,9 @@ def pick_binary(p_pos: float, threshold: float) -> tuple[bool, float]:
 
 
 class TFLiteEngine:
-    """Modelo TFLite do ESP32. Dois formatos de modelo:
-      - 3 classes (LIMPO, MODERADO, SEVERO): argmax; a bomba exige `low_confidence_threshold`.
-      - binário (2 saídas, ex.: NAOLIMPAR/LIMPAR): a classe negativa vira LIMPO e a positiva (card: positive_label) vira SEVERO,
-        que são os nomes do sistema; vale o limiar de operação `limiar_limpar` do card (como no firmware).
+    """Modelo TFLite do ESP32, binário (2 saídas; ex.: NAOLIMPAR/LIMPAR ou LIMPO/SEVERO): a classe negativa vira LIMPO e a
+    positiva (card: positive_label; padrão SEVERO) vira SEVERO, que são os nomes do sistema; vale o limiar de operação
+    `limiar_limpar` do card (como no firmware).
     """
 
     def __init__(self, interp, card: dict, names: tuple[str, ...] | None = None, positive: int | None = None) -> None:
@@ -67,8 +66,6 @@ class TFLiteEngine:
         d = Path(model_dir)
         labels = json.loads((d / "labels.json").read_text(encoding="utf-8"))
         card = json.loads((d / "model_card.json").read_text(encoding="utf-8"))
-        if labels == list(LABELS):
-            return cls(_interpreter(str(d / "model.tflite")), card)
         if len(labels) == 2:
             pos_name = card.get("positive_label") or ("SEVERO" if "SEVERO" in labels else labels[1])
             if pos_name not in labels:
@@ -77,7 +74,7 @@ class TFLiteEngine:
             names = ["LIMPO", "LIMPO"]
             names[positive] = "SEVERO"                # a classe que aciona a bomba é SEVERO; a outra, LIMPO
             return cls(_interpreter(str(d / "model.tflite")), card, tuple(names), positive)
-        raise ValueError(f"labels.json {labels} não é um formato conhecido (3 classes do sistema ou 2 classes)")
+        raise ValueError(f"labels.json {labels} não é um formato conhecido: o sistema é binário (2 classes)")
 
     def predict_image(self, img: Image.Image) -> Prediction:
         t0 = time.perf_counter()

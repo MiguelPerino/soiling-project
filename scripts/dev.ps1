@@ -1,15 +1,15 @@
 Set-Location (Join-Path $PSScriptRoot "..")
 $env:PYTHONPATH = "tools"
-# Se existir ai-model/models/current/model.tflite (soilnet v1), o simulador usa ESSE modelo (112 px, LIMPO/SEVERO).
-# Senão usa o modelo sintético de demonstração (96 px, decide pela cor; NÃO classifica sujeira).
-if (Test-Path "ai-model/models/current/model.tflite") {
-  Write-Host ">> Modelo REAL do time (ai-model/models/current)"
-  $simArgs = "-m","esp32_simulator.server","--model-dir","ai-model/models/current","--port","8081","--host","127.0.0.1"
+# O simulador usa o MESMO modelo gravado no ESP32 (models/esp32/model.tflite, soilnet 2x, 112 px, LIMPO/SEVERO).
+# Só se ele faltar cai no modelo sintético de demonstração (96 px, decide pela cor; NÃO classifica sujeira).
+if (Test-Path "models/esp32/model.tflite") {
+  Write-Host ">> Modelo do ESP32 (models/esp32)"
+  $simArgs = "-m","esp32_simulator.server","--model-dir","models/esp32","--port","8081","--host","127.0.0.1"
   $size = "112"; $classes = "LIMPO,SEVERO"
 } else {
-  Write-Host ">> Sem modelo em ai-model/models/current: usando o modelo SINTETICO de demonstracao"
+  Write-Host ">> Sem modelo em models/esp32: usando o modelo SINTETICO de demonstracao"
   $simArgs = "-m","esp32_simulator.server","--demo-model","--port","8081","--host","127.0.0.1"
-  $size = "96"; $classes = "LIMPO,MODERADO,SEVERO"
+  $size = "96"; $classes = "LIMPO,SEVERO"
 }
 $sim = Start-Process -PassThru -NoNewWindow .\.venv\Scripts\python -ArgumentList $simArgs
 try {

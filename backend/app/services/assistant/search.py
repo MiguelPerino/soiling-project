@@ -12,7 +12,7 @@ from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel, Field
 
-from app.labels import Label
+from app.labels import LABEL_TEXT, Label
 
 TZ = ZoneInfo("America/Sao_Paulo")
 
@@ -43,11 +43,12 @@ def rule_based_filter(question: str, now: datetime | None = None) -> SearchFilte
     q = _plain(question)
     f = SearchFilter()
     labels = []
-    if re.search(r"\b(limp[oa]s?)\b", q):
+    # "não precisa(m) limpar" = LIMPO; "precisa(m) limpar" = SEVERO. Tira a primeira expressão antes de procurar a segunda.
+    nao_precisa = r"\b(nao|sem)\s+(precisa\w*|necessita\w*)\s+(de\s+)?limp\w*"
+    if re.search(nao_precisa, q) or re.search(r"\b(limp[oa]s?)\b", q):
         labels.append(Label.LIMPO)
-    if re.search(r"\b(moderad[oa]s?|poeira|empoeirad[oa]s?)\b", q):
-        labels.append(Label.MODERADO)
-    if re.search(r"\b(sever[oa]s?|suj[oa]s?|critic[oa]s?|urgente|pior(es)?)\b", q):
+    rest = re.sub(nao_precisa, " ", q)
+    if re.search(r"\b(precisa\w*|necessita\w*)\s+(de\s+)?limp\w*|\b(sever[oa]s?|suj[oa]s?|empoeirad[oa]s?|poeira|critic[oa]s?|urgente|pior(es)?)\b", rest):
         labels.append(Label.SEVERO)
     f.labels = labels or None
 
@@ -70,7 +71,7 @@ def rule_based_filter(question: str, now: datetime | None = None) -> SearchFilte
 def describe_filter(f: SearchFilter) -> str:
     parts = []
     if f.labels:
-        parts.append("rótulo " + "/".join(l.value for l in f.labels))
+        parts.append(" ou ".join(LABEL_TEXT[l].lower() for l in f.labels))
     if f.since:
         parts.append(f"desde {f.since.astimezone(TZ):%d/%m %H:%M}")
     if f.until:

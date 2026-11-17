@@ -1,7 +1,7 @@
 import { Check, ChevronRight, CircleAlert, Download, Droplets, Filter, Search } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { api, ApiError, getAdminKey } from "../api";
-import { dayLabel, hourLabel, pct } from "../lib/format";
+import { dayLabel, hourLabel, labelText, pct } from "../lib/format";
 import type { Analysis, Config, Filters } from "../types";
 import { ENGINE_NAME, LABELS } from "../types";
 import { DetailModal } from "./DetailModal";
@@ -65,7 +65,7 @@ export function History({ config, refreshKey, review, onChanged }: { config: Con
         <div className="filter-group" role="group" aria-label="Filtros">
           <Filter size={16} aria-hidden />
           <span>Filtros:</span>
-          {LABELS.map((l) => <button key={l} className={f.labels.includes(l) ? "active" : ""} aria-pressed={f.labels.includes(l)} onClick={() => toggle(l)}>{l}</button>)}
+          {LABELS.map((l) => <button key={l} className={f.labels.includes(l) ? "active" : ""} aria-pressed={f.labels.includes(l)} onClick={() => toggle(l)}>{labelText(l)}</button>)}
           {(["esp32", "server"] as const).map((e) => (
             <button key={e} className={f.engine === e ? "active" : ""} aria-pressed={f.engine === e} onClick={() => setF((p) => ({ ...p, engine: p.engine === e ? "" : e }))}>{ENGINE_NAME[e]}</button>
           ))}
@@ -99,14 +99,14 @@ export function History({ config, refreshKey, review, onChanged }: { config: Con
                     onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpen(a); } }}>
                     <td>
                       <div className="table-analysis">
-                        <img src={a.image_url} alt={`Foto ${a.id}: ${a.final_label}`} loading="lazy" />
+                        <img src={a.image_url} alt={`Foto ${a.id}: ${labelText(a.final_label)}`} loading="lazy" />
                         <strong>#{a.id}</strong>
                       </div>
                     </td>
                     <td><strong>{dayLabel(a.created_at)}</strong><small>{hourLabel(a.created_at)}</small></td>
                     <td>
                       <LabelBadge label={a.final_label} />
-                      {a.human_label && <span className="human-mark" title={`${ENGINE_NAME[a.engine ?? "esp32"]} disse ${a.classification}`}>Corrigida</span>}
+                      {a.human_label && <span className="human-mark" title={`${ENGINE_NAME[a.engine ?? "esp32"]} disse “${labelText(a.classification)}”`}>Corrigida</span>}
                     </td>
                     <td>
                       <div className="confidence-cell">

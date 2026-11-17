@@ -1,0 +1,147 @@
+{
+  "version": "soilnet-2x-112-20261116",
+  "task": "binario",
+  "arch": "soilnet",
+  "soilnet": {
+    "preset": "2x",
+    "stem": 8,
+    "blocks": [
+      [
+        24,
+        2
+      ],
+      [
+        48,
+        2
+      ],
+      [
+        48,
+        1
+      ],
+      [
+        96,
+        2
+      ],
+      [
+        96,
+        1
+      ],
+      [
+        96,
+        1
+      ],
+      [
+        184,
+        2
+      ],
+      [
+        184,
+        1
+      ],
+      [
+        232,
+        1
+      ]
+    ],
+    "width": 1.0
+  },
+  "class_folders": {
+    "nao_aciona": "NaoLimpar",
+    "aciona": "Limpar"
+  },
+  "labels": [
+    "NAOLIMPAR",
+    "LIMPAR"
+  ],
+  "positive_label": "LIMPAR",
+  "input_size": 112,
+  "preprocessamento": "dataset tratado 224 (preprocess.py do notebook de tratamento) -> resize -> JPEG -> RGB565",
+  "teste": "split interno (15% das fotos reais, por grupo)",
+  "n_teste": 196,
+  "jpeg_quality": 85,
+  "rgb565": true,
+  "limiar_nao_limpar": 0.5,
+  "limiar_limpar": 0.5,
+  "low_confidence_threshold": 0.5,
+  "parameters": 135834,
+  "tflite_bytes": 196224,
+  "tflite": {
+    "input": {
+      "shape": [
+        1,
+        112,
+        112,
+        3
+      ],
+      "dtype": "int8",
+      "scale": 1.0,
+      "zero_point": -128
+    },
+    "output": {
+      "shape": [
+        1,
+        2
+      ],
+      "dtype": "int8",
+      "scale": 0.00390625,
+      "zero_point": -128
+    },
+    "ops": [
+      "ADD",
+      "CONV_2D",
+      "DEPTHWISE_CONV_2D",
+      "FULLY_CONNECTED",
+      "MEAN",
+      "SOFTMAX"
+    ],
+    "arena_estimada_bytes": 68992
+  },
+  "treino": {
+    "origem": "do zero com 100% do dataset de treino",
+    "n": 1148,
+    "sinteticas": 0,
+    "epocas": 450,
+    "aumento": {
+      "rot90_copias": true,
+      "graus_aleatorios": 10,
+      "espelhamento": true
+    }
+  },
+  "avaliacao_teste_int8": {
+    "acuracia": 0.8826530612244898,
+    "loss": 0.9409863185182958,
+    "f1_macro": 0.8817635796154956,
+    "auc": 0.913589904046725,
+    "recall_limpar": 0.8297872340425532,
+    "precisao_limpar": 0.9176470588235294,
+    "especificidade_nao_limpar": 0.9313725490196079,
+    "decisao": {
+      "limiar_nao_limpar": 0.5,
+      "limiar_limpar": 0.5,
+      "aciona": 85,
+      "aciona_correto_pct": 0.9176470588235294,
+      "nao_aciona": 111,
+      "nao_aciona_correto_pct": 0.8558558558558559,
+      "revisao_humana": 0,
+      "cobertura_automatica": 1.0,
+      "limpa_que_acionaria_pct": 0.06862745098039216,
+      "suja_ignorada_pct": 0.1702127659574468
+    },
+    "ic95": {
+      "acuracia": [
+        0.8366071428571429,
+        0.923469387755102
+      ],
+      "auc": [
+        0.8706029581128527,
+        0.9503365568166042
+      ]
+    }
+  },
+  "avaliacao_teste_float": {
+    "acuracia": 0.8775510204081632,
+    "loss": 0.9398223966274011,
+    "f1_macro": 0.8765095033077812,
+    "auc": 0.9449311639549437
+  }
+}

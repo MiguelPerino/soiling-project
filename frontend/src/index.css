@@ -418,7 +418,7 @@
 }
 .metrics-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
 }
 .metric-card {
@@ -973,13 +973,6 @@
 .label-badge.limpo span {
   background: #21a873;
 }
-.label-badge.moderado {
-  color: #b1730e;
-  background: #fdf5df;
-}
-.label-badge.moderado span {
-  background: #e7a52c;
-}
 .label-badge.severo {
   color: #c74245;
   background: #fce9e9;
@@ -1487,7 +1480,7 @@
 .probabilities > div {
   margin-top: 8px;
   display: grid;
-  grid-template-columns: 58px 1fr 35px;
+  grid-template-columns: 118px 1fr 42px;
   gap: 8px;
   align-items: center;
   font-size: 11.5px;
@@ -1496,14 +1489,31 @@
   font-size: 11px;
 }
 .probabilities > div > i {
+  position: relative;
   height: 5px;
   background: #edf1f3;
   border-radius: 3px;
-  overflow: hidden;
+}
+.probabilities .threshold-mark {
+  position: absolute;
+  top: -4px;
+  width: 2px;
+  height: 13px;
+  margin-left: -1px;
+  border-radius: 1px;
+  background: #33424d;
+}
+.probabilities .threshold-note {
+  display: block;
+  margin-top: 8px;
+  color: #6c7d89;
+  font-size: 11px;
+  line-height: 1.45;
 }
 .probabilities em {
   display: block;
   height: 100%;
+  border-radius: 3px;
   background: #2ead7c;
 }
 .probabilities em.red {
@@ -2312,7 +2322,7 @@ td > small {
 }
 .label-choice {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 6px;
   margin-top: 12px;
 }
@@ -2344,19 +2354,11 @@ td > small {
   background: #24a977;
 }
 .label-choice button:nth-child(2).active {
-  color: #aa710f;
-  border-color: #e6c16e;
-  background: #fffaf0;
-}
-.label-choice button:nth-child(2).active span {
-  background: #e5a52c;
-}
-.label-choice button:nth-child(3).active {
   color: #c84346;
   border-color: #e99a9b;
   background: #fff6f6;
 }
-.label-choice button:nth-child(3).active span {
+.label-choice button:nth-child(2).active span {
   background: #e25356;
 }
 .modal-actions {
@@ -2720,10 +2722,10 @@ td > small {
 .pump-toggle input:checked + .box{background:#168bca;border-color:#168bca;color:#fff}
 .pump-toggle input:focus-visible + .box{outline:2px solid #168bca;outline-offset:2px}
 .big-label{display:flex;align-items:center;gap:10px}
-.big-label.limpo{color:#1f9a6b}.big-label.moderado{color:#c98a12}.big-label.severo{color:#d85254}
+.big-label.limpo{color:#1f9a6b}.big-label.severo{color:#d85254}
 .big-label span{width:12px;height:12px;border-radius:50%;background:currentColor}
 .probabilities em{background:#b9c8d3}
-.probabilities em.limpo{background:#27aa77}.probabilities em.moderado{background:#edb23b}.probabilities em.severo,.probabilities em.red{background:#e75c5e}
+.probabilities em.limpo{background:#27aa77}.probabilities em.severo,.probabilities em.red{background:#e75c5e}
 .load-more{display:block;margin:14px auto;padding:10px 22px;border-radius:9px;border:1px solid var(--line);background:#fff;font-weight:600;color:#33505f}
 .load-more:disabled{opacity:.6}
 .remove-fix{margin-left:8px}
@@ -2751,6 +2753,8 @@ td > small {
 .weather-facts span{display:flex;flex-direction:column;font-size:13px}
 .weather-facts b{font-size:11.5px;color:var(--muted);letter-spacing:.04em}
 .weather-facts strong{font-size:17px;color:#213b50}
+.weather-card .weather-facts b{color:#9fc3dc}
+.weather-card .weather-facts strong{color:#fff}
 .weather-now strong.weather-title{display:block;font-size:22px;line-height:1.2;margin:4px 0 6px;padding-right:70px}
 .weather-now p{font-size:14px;line-height:1.5;margin:0}
 .sidebar small{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}

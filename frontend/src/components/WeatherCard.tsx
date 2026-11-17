@@ -21,12 +21,15 @@ function useWeather() {
   return { w, busy, load };
 }
 
+/** 1.8 -> "1,8 mm" (formato brasileiro). */
+const mm = (v: number | null | undefined) => (v == null ? "—" : `${v.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} mm`);
+
 function Facts({ w }: { w: WeatherAdvice }) {
   if (!w.disponivel) return null;
   return (
     <div className="weather-facts">
-      <span><b>ÚLTIMAS 24 H</b><strong>{w.chuva_24h_passadas_mm} mm</strong></span>
-      <span><b>PRÓXIMAS 24 H</b><strong>{w.chuva_24h_proximas_mm} mm</strong></span>
+      <span><b>ÚLTIMAS 24 H</b><strong>{mm(w.chuva_24h_passadas_mm)}</strong></span>
+      <span><b>PRÓXIMAS 24 H</b><strong>{mm(w.chuva_24h_proximas_mm)}</strong></span>
       {w.prob_max_24h != null && <span><b>CHANCE MÁXIMA</b><strong>{w.prob_max_24h}%</strong></span>}
     </div>
   );
@@ -35,7 +38,7 @@ function Facts({ w }: { w: WeatherAdvice }) {
 function Credit({ w }: { w: WeatherAdvice }) {
   return (
     <>
-      {w.aviso}{w.limiares ? ` Fraca ≥ ${w.limiares.fraca_mm} mm, forte ≥ ${w.limiares.forte_mm} mm em 24 h.` : ""}{" "}
+      {w.aviso}{w.limiares ? ` Fraca ≥ ${mm(w.limiares.fraca_mm)}, forte ≥ ${mm(w.limiares.forte_mm)} em 24 h.` : ""}{" "}
       <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">{w.fonte}</a>
     </>
   );
@@ -64,7 +67,7 @@ export function WeatherCard({ variant = "full" }: { variant?: "full" | "strip" }
           {w.observacoes.map((o) => <p key={o} className="obs">• {o}</p>)}
           {w.disponivel && (
             <p className="obs">
-              Últimas 24 h: <strong>{w.chuva_24h_passadas_mm} mm</strong> · Próximas 24 h: <strong>{w.chuva_24h_proximas_mm} mm</strong>
+              Últimas 24 h: <strong>{mm(w.chuva_24h_passadas_mm)}</strong> · Próximas 24 h: <strong>{mm(w.chuva_24h_proximas_mm)}</strong>
               {w.prob_max_24h != null && <> · chance máxima {w.prob_max_24h}%</>}
               {w.desatualizado && <> · <em>dados desatualizados (sem conexão)</em></>}
             </p>

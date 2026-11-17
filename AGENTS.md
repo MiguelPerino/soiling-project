@@ -4,11 +4,15 @@ Leia este arquivo inteiro antes de mexer. Detalhes por assunto: `docs/` e `.clau
 (são markdown comum: Codex e outros agentes podem lê-los diretamente).
 
 ## O que é
-Classificação de sujeira em painel solar a partir de foto: **LIMPO / MODERADO / SEVERO**. Se SEVERO e confiança ≥ 0,60,
+Classificação BINÁRIA de painel solar a partir de foto: **LIMPO = "Não precisa limpar"** e **SEVERO = "Precisa limpar"**
+(códigos na API/banco/protocolo; os textos ficam no front). Não existe mais MODERADO. Se SEVERO e confiança ≥ limiar,
 o ESP32 aciona uma bomba de água. Há **dois modos** de análise, escolhidos no front (não existe modo "comparar"):
 - **ESP32** (`engine=esp32`): a inferência roda no ESP32, que também decide a bomba. O backend redimensiona a foto para o tamanho do
   modelo do ESP32, encaminha (`POST /upload`), valida a resposta e grava arquivo + linha no banco.
 - **Servidor** (`engine=server`): um modelo grande opcional (ex.: ResNet, ONNX) roda no backend via ONNX Runtime. **Nunca aciona a bomba.**
+  É binário: decide "Precisa limpar" quando P(positiva) ≥ `decisao.limiar` do card (hoje 0,19), com faixa de dúvida até `SERVER_REVIEW_UNTIL`.
+  Antes dos DOIS modelos, a foto passa pelo enquadramento do notebook de tratamento (`backend/app/services/framing.py`, cópia fiel do
+  `preprocess.py`: não altere sem retreinar). No ESP32: enquadra (224) → 112 → JPEG 85 (`ESP32_FRAMING=panel`).
   Tamanho de entrada e classes são configuração (`ESP32_INPUT_SIZE`, `ESP32_CLASSES`, `SERVER_INPUT_SIZE`, `labels.json`). Veja `docs/12_MODELO_NO_SERVIDOR.md`.
 
 ## O que NÃO existe neste projeto (não reintroduza)
@@ -20,26 +24,30 @@ Exceção decidida em 9/11: **Open‑Meteo só como recomendação de chuva na t
 - `backend/` FastAPI. `app/api/routes.py` (rotas finas) · `app/services/` (esp32, analysis, storage, assistant) · `app/database/` (models, repository) · `tests/`
 - `frontend/` Vite + React 18 + TS + Tailwind 3 + Recharts. `src/api.ts` é o único lugar que fala com a API.
 - `firmware/esp32/` PlatformIO (esp32dev, SEM PSRAM). `src/pump_policy.h` é C++ puro e testado.
-- `ai-model/training/` `prepare_data.py` → `train.py` (Keras → TFLite int8) · `conversion/tflite_to_header.py`
+- `ai-model/notebooks/` tratamento do dataset → treino ResNet (servidor) / treino soilnet (ESP32) · `conversion/tflite_to_header.py`. Veja `ai-model/README.md`.
+- `models/esp32/` soilnet 2x em uso (no git; `firmware/esp32/src/model_data.h` é ele convertido) · `models/server/` ResNet50 (release + `model.lock`)
 - `tools/esp32_simulator/` ESP32 de mentira (mesmo protocolo e mesma política). Use para testar sem hardware.
 - `infra/terraform/` Azure (Container Apps + ACR) · `scripts/` setup/test/dev (sh e ps1)
 
 ## Comandos
 ```bash
-scripts/setup.sh                                   # venv + dependências + build do front
-scripts/test.sh                                    # backend, ai-model, typecheck do front, política da bomba (C++)
+scripts/setup.sh                                   # venv + dependências + build do front + modelo grande
+scripts/download-model.sh [--check]                # baixa/confere o modelo grande (release do GitHub, SHA-256 em models/server/model.lock)
+scripts/test.sh                                    # backend (inclui coerência firmware × modelo do ESP32), typecheck do front, política da bomba (C++)
 TEST_DATABASE_URL=postgresql+psycopg://u:s@host/db scripts/test.sh   # também no PostgreSQL
-scripts/dev.sh                                     # simulador + API em http://localhost:8000
+scripts/dev.sh                                     # simulador (com models/esp32) + API em http://localhost:8000
 cd frontend && npm run dev                         # front com hot reload (proxy /api -> :8000)
 ```
 Python 3.13; use SEMPRE o `.venv` na raiz (`.venv/bin/python`, `.venv\Scripts\python` no Windows).
 
 ## Regras que não podem quebrar
-1. **Ordem das classes** `LIMPO, MODERADO, SEVERO` é a ordem das saídas do modelo. Está em `backend/app/labels.py`,
-   `ai-model/training/labels.py` e `tools/esp32_simulator/classifier.py`. Mude nos três ou em nenhum — e retreine.
-2. **Contrato de pré-processamento**: imagem esticada (sem recorte) para `ESP32_INPUT_SIZE×ESP32_INPUT_SIZE` (padrão 112, soilnet v1), JPEG; a
-   normalização vive DENTRO do modelo. `INPUT_SIZE` aparece em `backend/app/config.py`, `firmware/esp32/src/config.h`,
-   `model_card.json`. Se mudar um, mude todos.
+1. **Classes**: o sistema tem só `LIMPO` e `SEVERO` (`backend/app/labels.py`, `tools/esp32_simulator/classifier.py`, `frontend/src/types.ts`).
+   A ordem das saídas de cada modelo vem do `labels.json`/`model_card.json` dele (o do servidor usa NaoLimpar/Limpar + `classe_positiva`).
+   O ESP32 usa `labels.json` NAOLIMPAR/LIMPAR + `positive_label`; `config.h` (`CLASS_NAMES`, `POSITIVE_CLASS`, limiares) tem de bater com
+   `models/esp32/model_card.json` e `model_data.h` com o `.tflite`: `backend/tests/test_esp32_model.py` confere.
+2. **Contrato de pré-processamento**: o mesmo do treino. ESP32: foto enquadrada (`framing.py`, 224, JPEG 95) → `ESP32_INPUT_SIZE×ESP32_INPUT_SIZE`
+   (112, bilinear) → JPEG 85 → RGB565 no firmware; a normalização vive DENTRO do modelo. `INPUT_SIZE` aparece em `backend/app/config.py`,
+   `firmware/esp32/src/config.h` e `models/esp32/model_card.json`. Se mudar um, mude todos.
 3. **Segurança da bomba** é imposta no FIRMWARE (`pump_policy.h`) e espelhada no simulador: só SEVERO, confiança ≥ limiar,
    intervalo mínimo, duração ≤ 60 s, desligada ao boot e sem Wi‑Fi. O backend valida `pump_duration_ms ≤ 60000`, mas
    NUNCA decide ligar. Sem `X-API-Key` (quando `ADMIN_API_KEY` existe) o backend envia `pump=0`.
@@ -49,7 +57,7 @@ Python 3.13; use SEMPRE o `.venv` na raiz (`.venv/bin/python`, `.venv\Scripts\py
 7. A IA (Gemini) só traduz pergunta→filtro e redige resumo com números que o banco forneceu. Sem chave ou em falha, há plano B
    por regras. Nunca envie fotos à IA. `GEMINI_MODEL` não tem padrão de propósito.
 8. **Chuva (Open‑Meteo) é só aviso**: falha/indisponível ⇒ o sistema segue normal; limiares (`RAIN_LIGHT_MM`, `RAIN_HEAVY_MM`) são provisórios; o crédito "Open‑Meteo.com" fica visível; uso gratuito é só não comercial.
-9. Segredos só em `.env` / SSM. Nunca em código, log ou commit.
+9. Segredos só em `.env` (local) e `terraform.tfvars`/state do Terraform (Azure), todos fora do git. Nunca em código, log ou commit.
 10. Nunca diga que algo foi testado sem ter rodado. O que NÃO está validado está listado em `README.md` e `docs/09_TESTES_E_VALIDACAO.md`.
 
 ## Antes de entregar uma mudança

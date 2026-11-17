@@ -1,0 +1,91 @@
+{
+  "modelo": "soilnet_2x_112_20261116_2127",
+  "treino": {
+    "n": 1148,
+    "acc_ultima_epoca": 0.9997822046279907,
+    "loss_ultima_epoca": 0.0019846269860863686
+  },
+  "teste_float": {
+    "acuracia": 0.8775510204081632,
+    "loss": 0.9398223966274011,
+    "f1_macro": 0.8765095033077812,
+    "auc": 0.9449311639549437,
+    "recall_limpar": 0.8191489361702128,
+    "precisao_limpar": 0.9166666666666666,
+    "especificidade_nao_limpar": 0.9313725490196079,
+    "matriz_confusao": [
+      [
+        95,
+        7
+      ],
+      [
+        17,
+        77
+      ]
+    ],
+    "decisao": {
+      "limiar_nao_limpar": 0.5,
+      "limiar_limpar": 0.5,
+      "aciona": 84,
+      "aciona_correto_pct": 0.9166666666666666,
+      "nao_aciona": 112,
+      "nao_aciona_correto_pct": 0.8482142857142857,
+      "revisao_humana": 0,
+      "cobertura_automatica": 1.0,
+      "limpa_que_acionaria_pct": 0.06862745098039216,
+      "suja_ignorada_pct": 0.18085106382978725
+    },
+    "ic95": {
+      "acuracia": [
+        0.8316326530612245,
+        0.9183673469387755
+      ],
+      "auc": [
+        0.9101364014993752,
+        0.9737738814006435
+      ]
+    }
+  },
+  "teste_int8": {
+    "acuracia": 0.8826530612244898,
+    "loss": 0.9409863185182958,
+    "f1_macro": 0.8817635796154956,
+    "auc": 0.913589904046725,
+    "recall_limpar": 0.8297872340425532,
+    "precisao_limpar": 0.9176470588235294,
+    "especificidade_nao_limpar": 0.9313725490196079,
+    "matriz_confusao": [
+      [
+        95,
+        7
+      ],
+      [
+        16,
+        78
+      ]
+    ],
+    "decisao": {
+      "limiar_nao_limpar": 0.5,
+      "limiar_limpar": 0.5,
+      "aciona": 85,
+      "aciona_correto_pct": 0.9176470588235294,
+      "nao_aciona": 111,
+      "nao_aciona_correto_pct": 0.8558558558558559,
+      "revisao_humana": 0,
+      "cobertura_automatica": 1.0,
+      "limpa_que_acionaria_pct": 0.06862745098039216,
+      "suja_ignorada_pct": 0.1702127659574468
+    },
+    "ic95": {
+      "acuracia": [
+        0.8366071428571429,
+        0.923469387755102
+      ],
+      "auc": [
+        0.8706029581128527,
+        0.9503365568166042
+      ]
+    }
+  },
+  "validacao_cruzada": null
+}
