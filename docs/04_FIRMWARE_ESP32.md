@@ -78,7 +78,8 @@ curvas, partição) ficam com o time.
 e `ESP32_INPUT_SIZE=112`. **Atenção:** NAOLIMPAR inclui poeira leve; na tela aparece como "LIMPO".
 
 **Ao trocar de modelo**, revise em `config.h` tudo que está marcado `[MODELO]` (tamanho, número de classes, nomes, índice positivo, limiares,
-versão), o `model_data.h` e, no backend, `ESP32_INPUT_SIZE` e `ESP32_CLASSES`.
+versão), o `model_data.h` e, no backend, `ESP32_INPUT_SIZE` e `ESP32_CLASSES`. Um modelo de `ai-model/training/train.py` sai no mesmo formato
+do soilnet v1 e o script imprime o trecho `[MODELO]` pronto para colar.
 
 **O que foi e não foi verificado:** o `.tflite` roda no simulador (TFLite int8) com a mesma regra de decisão e testes automáticos da lógica
 (`firmware/esp32/test/`) passam em C++. O firmware **não foi compilado** (sem PlatformIO neste ambiente) nem rodado no ESP32: arena real,

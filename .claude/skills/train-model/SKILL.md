@@ -1,21 +1,23 @@
 ---
 name: train-model
-description: Preparar o dataset (Roboflow + fotos extras), treinar o classificador Keras e exportar TFLite int8 para o ESP32. Use ao treinar, avaliar, trocar a rede ou mudar o tamanho de entrada.
+description: Preparar o dataset (Roboflow + fotos extras), treinar o classificador binário Keras e exportar TFLite int8 para o ESP32. Use ao treinar, avaliar, trocar a rede ou mudar o tamanho de entrada.
 ---
-# Treino (ai-model/)
+# Treino (ai-model/) — modelo BINÁRIO do ESP32
 
 ```bash
 .venv/bin/pip install -r ai-model/requirements.txt
 cd ai-model/training
-python prepare_data.py --roboflow ../data/roboflow --extra ../data/minhas_fotos --out ../data/manifest.csv   # --class-map "Dusty=SEVERO" --resplit
-python train.py --manifest ../data/manifest.csv --size 96 --epochs 40 --out ../models/run1
+python prepare_data.py --roboflow ../data/roboflow --extra ../data/minhas_fotos --class-map "Dusty=SEVERO" --out ../data/manifest.csv   # --resplit
+python train.py --manifest ../data/manifest.csv --size 112 --epochs 40 --out ../models/run1
 cp -r ../models/run1 ../models/current
 python ../conversion/tflite_to_header.py ../models/current/model.tflite ../../firmware/esp32/src/model_data.h
 ```
-- Dataset precisa de **um rótulo por imagem** (exporte do Roboflow como classificação). `Clean/Dusty/Soiled → LIMPO/MODERADO/SEVERO` é **suposição**: confira imagens.
-- Duplicatas entre partições são removidas (SHA‑256). Mantenha um teste só com fotos do **seu** painel/câmera.
-- O modelo normaliza **dentro** (Rescaling) e recebe RGB 0–255; o resize+JPEG do treino imita o backend. Mude `--size` ⇒ mude `INPUT_SIZE` no backend, no firmware e no `model_card.json`.
-- Meça sempre o **int8** (`teste_tflite_int8` em `metrics.json`): é o que roda no ESP32. Olhe a matriz de confusão (SEVERO×LIMPO são os erros caros).
-- BatchNorm com `momentum=0.9` de propósito (com poucos passos o padrão 0,99 dá modelo que treina bem e falha na inferência).
-- Não prometa acurácia sem ter treinado com dados reais. O único treino rodado até hoje foi sintético.
-- Tamanho: `model_card.json` mostra bytes e operadores; a RAM real só se mede no ESP32 (`arena_used_bytes`).
+- Duas classes: `LIMPO` (NAOLIMPAR, índice 0) e `SEVERO` (LIMPAR, índice 1, positiva). Pastas aceitas: LIMPO/SEVERO, NaoLimpar/Limpar, Clean/Soiled. `Dusty` exige `--class-map`.
+- A saída segue o formato do soilnet v1 (labels NAOLIMPAR/LIMPAR, `positive_label`, `limiar_limpar`, `low_confidence_threshold`, `rgb565`).
+  `train.py` imprime o trecho `[MODELO]` do `firmware/esp32/src/config.h`: cole-o, regenere o `model_data.h` e confira `ESP32_INPUT_SIZE` no backend.
+- Decisão por limiar (escolhido na validação int8), não argmax. A bomba exige `max(limiar, 0,5)` por padrão.
+- Treino imita a implantação: esticada, JPEG 85, RGB565. Mude `--size` ⇒ mude `ESP32_INPUT_SIZE` (backend) e `INPUT_SIZE` (firmware).
+- Meça sempre o **int8** (`teste_tflite_int8` em `metrics.json`). Olhe a matriz de confusão.
+- BatchNorm com `momentum=0.9` de propósito. Melhor epoch: F1 no corte 0,5, desempate pela menor perda de validação.
+- `backend/tests/test_trained_esp32_model.py` prova que a saída do treino roda no simulador e no backend (modelo sintético em fixtures).
+- Não prometa acurácia sem ter treinado com dados reais.

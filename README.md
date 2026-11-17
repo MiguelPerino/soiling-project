@@ -57,11 +57,11 @@ Ou com Docker (PostgreSQL incluso): `cp .env.example .env`, edite, `docker compo
 
 | Parte | Estado |
 | --- | --- |
-| Backend, banco (SQLite **e** PostgreSQL 16), protocolo com ESP32 simulado | testado automaticamente: 66 testes em SQLite. PostgreSQL 16 passou antes do modo servidor (10/11) e **não foi reexecutado** depois |
+| Backend, banco (SQLite **e** PostgreSQL 16), protocolo com ESP32 simulado | testado automaticamente: 71 testes em SQLite. PostgreSQL 16 passou antes do modo servidor (10/11) e **não foi reexecutado** depois |
 | **Firmware no ESP32 (12/11)** | **compilado, gravado e rodando numa placa esp32dev**: o modelo soilnet carrega, conecta no Wi‑Fi, responde ao backend, e uma imagem classificada `SEVERO` acendeu o LED azul (GPIO 2) com a regra de bomba. Houve folga de memória (relato da equipe) |
 | Modo servidor (modelo grande ONNX) | testado com um ONNX **sintético** no formato do ResNet (binário, limiar, faixa de dúvida, modelo ausente/inválido, exportação). Enquadramento idêntico ao do notebook (conferido pixel a pixel). A ResNet50 real carrega e roda (≈35–55 ms/foto na CPU), só com imagens sintéticas. Acurácia em fotos reais: **não medida** |
 | Front no navegador (fluxo completo, mobo mesmo contêiner serve a API e o front compilado (sem CORS e com um deploy só). Detalhes e comandos: `infra/terraform/README.md`.o mesmo contêiner serve a API e o front compilado (sem CORS e com um deploy só). Detalhes e comandos: `infra/terraform/README.md`.ile, tema escuro) | testado com Playwright contra o stack real, usando o simulador |
-| Pipeline de treino → TFLite int8 → simulador | testado de ponta a ponta com imagens **sintéticas** (prova o encanamento, não a acurácia) |
+| Pipeline de treino (binário) → TFLite int8 → simulador → backend | testado de ponta a ponta em 17/11 com imagens **sintéticas** (TensorFlow 2.21): mesmo formato e mesma quantização do soilnet v1, bomba acionando só com P ≥ 0,5. Prova o encanamento, não a acurácia. Firmware com esse modelo **não compilado** |
 | Política de segurança da bomba (C++) | testada no computador |
 | **Acurácia com fotos reais na placa** | **não medida por nós**: só as métricas de treino da equipe. Limiar 0,41 (ESP32) vs. 0,60 (backend marca baixa confiança) ainda a alinhar |
 | **Bomba real, uso contínuo, tempo de inferência medido, Wi‑Fi da universidade** | **não testados**: só o LED foi verificado, com imagens de cor lisa (prova o caminho, não a acurácia) |

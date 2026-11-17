@@ -1,0 +1,65 @@
+{
+  "version": "tiny_cnn-112-20261117",
+  "task": "binario",
+  "arch": "tiny_cnn",
+  "input_size": 112,
+  "labels": [
+    "NAOLIMPAR",
+    "LIMPAR"
+  ],
+  "positive_label": "LIMPAR",
+  "resize_mode": "stretch",
+  "jpeg_quality": 85,
+  "rgb565": true,
+  "limiar_nao_limpar": 0.5,
+  "limiar_limpar": 0.5,
+  "low_confidence_threshold": 0.5,
+  "parameters": 8666,
+  "tflite_bytes": 28760,
+  "tflite": {
+    "input": {
+      "shape": [
+        1,
+        112,
+        112,
+        3
+      ],
+      "dtype": "int8",
+      "scale": 1.0,
+      "zero_point": -128
+    },
+    "output": {
+      "shape": [
+        1,
+        2
+      ],
+      "dtype": "int8",
+      "scale": 0.00390625,
+      "zero_point": -128
+    },
+    "ops": [
+      "ADD",
+      "CONV_2D",
+      "DEPTHWISE_CONV_2D",
+      "FULLY_CONNECTED",
+      "MEAN",
+      "MUL",
+      "SOFTMAX"
+    ]
+  },
+  "trained_on": {
+    "train": 210,
+    "val": 44,
+    "test": 46
+  },
+  "class_weight": {
+    "NAOLIMPAR": 1.0,
+    "LIMPAR": 1.0
+  },
+  "val_f1_macro_float": 1.0,
+  "val_f1_macro_int8": 1.0,
+  "test_accuracy_int8": 1.0,
+  "test_f1_macro_int8": 1.0,
+  "test_auc_int8": 1.0,
+  "nota": "A RAM real (tensor arena) só se mede no ESP32. Veja docs/04_FIRMWARE_ESP32.md."
+}

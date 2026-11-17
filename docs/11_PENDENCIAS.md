@@ -2,7 +2,7 @@
 
 | # | Item | Estado / recomendação |
 | --- | --- | --- |
-| 1 | **Mapeamento das classes** do Roboflow (Clean/Dusty/Soiled → LIMPO/MODERADO/SEVERO) | suposição; conferir imagens e ajustar `--class-map` |
+| 1 | **Mapeamento das classes** do Roboflow no sistema binário: `Dusty` (poeira) precisa limpar ou não? | decisão da equipe; `prepare_data.py` exige `--class-map "Dusty=SEVERO"` ou `"Dusty=LIMPO"` |
 | 2 | **Tipo do projeto Roboflow** (classificação ou detecção?) e formato de export | não confirmado; precisa ser classificação |
 | 3 | **Treino com dados reais** e acurácia | pendente |
 | 4 | **Modelo cabe no ESP32?** (arena, velocidade, heap) | pendente de teste em hardware; ver `04_` |

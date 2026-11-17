@@ -41,7 +41,8 @@ Python 3.13; use SEMPRE o `.venv` na raiz (`.venv/bin/python`, `.venv\Scripts\py
 ## Regras que não podem quebrar
 1. **Classes**: o sistema tem só `LIMPO` e `SEVERO` (`backend/app/labels.py`, `tools/esp32_simulator/classifier.py`, `frontend/src/types.ts`).
    A ordem das saídas de cada modelo vem do `labels.json`/`model_card.json` dele (o do servidor usa NaoLimpar/Limpar + `classe_positiva`).
-   `ai-model/training/` (pipeline Keras do ESP32) ainda assume 3 classes e não foi alterado: o modelo do ESP32 vem do notebook do time.
+   `ai-model/training/` (pipeline Keras do ESP32) também é binário e exporta no formato do soilnet v1 (labels NAOLIMPAR/LIMPAR,
+   `positive_label`, `limiar_limpar`), que o firmware (`config.h`) e o simulador (`tflite_engine.py`) já leem.
 2. **Contrato de pré-processamento (ESP32)**: imagem esticada (sem recorte) para `ESP32_INPUT_SIZE×ESP32_INPUT_SIZE` (padrão 112, soilnet v1), JPEG; a
    normalização vive DENTRO do modelo. `INPUT_SIZE` aparece em `backend/app/config.py`, `firmware/esp32/src/config.h`,
    `model_card.json`. Se mudar um, mude todos.

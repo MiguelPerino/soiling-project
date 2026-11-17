@@ -5,8 +5,12 @@ Formatos aceitos (exporte do Roboflow como CLASSIFICAÇÃO):
   csv      <raiz>/{train,valid,test}/_classes.csv + imagens  ("Multi-label CSV", uma coluna por classe, 1 = pertence)
 Formatos de detecção (YOLO/COCO, caixas) NÃO são aceitos: não há rótulo por imagem. O script avisa.
 
-Fotos extras: --extra pasta/ com subpastas LIMPO/ MODERADO/ SEVERO/ (ou os nomes do dataset). Vão para treino/val/teste
-por sorteio estratificado, com semente fixa.
+Duas classes (sistema binário): LIMPO ("Não precisa limpar") e SEVERO ("Precisa limpar"). Nomes de pasta aceitos sem
+--class-map: LIMPO/SEVERO (zip de retreino do backend), NaoLimpar/Limpar (notebook do time), Clean/Soiled (Roboflow).
+"Dusty" não tem padrão: decida com --class-map "Dusty=SEVERO" (ou LIMPO).
+
+Fotos extras: --extra pasta/ com subpastas por classe (ex.: o zip "Exportar fotos revisadas" do Histórico, LIMPO/ e SEVERO/).
+Vão para treino/val/teste por sorteio estratificado, com semente fixa.
 
 Regras de higiene: remove duplicatas exatas (SHA-256) — a mesma foto em partições diferentes vazaria o teste para o treino —,
 descarta imagens ilegíveis e imprime a contagem final por partição e classe.
@@ -106,7 +110,7 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--roboflow", type=Path, help="pasta do export de classificação do Roboflow")
     ap.add_argument("--extra", type=Path, action="append", default=[], help="pasta com fotos extras (subpastas por classe)")
-    ap.add_argument("--class-map", default="", help='ex.: "Dusty=SEVERO"')
+    ap.add_argument("--class-map", default="", help='ex.: "Dusty=SEVERO" (destinos: LIMPO ou SEVERO)')
     ap.add_argument("--resplit", action="store_true", help="ignora as partições do Roboflow e sorteia 70/15/15 estratificado")
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--out", type=Path, default=Path("data/manifest.csv"))

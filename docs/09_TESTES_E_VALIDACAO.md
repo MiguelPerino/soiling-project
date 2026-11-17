@@ -7,13 +7,13 @@ Postgres: `TEST_DATABASE_URL=postgresql+psycopg://u:s@host/db_de_teste scripts/t
 ## O que foi verificado (05/11/2026)
 | Verificação | Resultado |
 | --- | --- |
-| `backend/tests` (66 testes): API, banco, fluxo com ESP32 simulado **real via HTTP**, falhas do ESP32, modo servidor (ONNX sintético no formato do ResNet: binário, NHWC 0..255, `probs`, limiar 0,19, faixa de dúvida, enquadramento do notebook), o modelo real soilnet v1 no simulador e no backend, classes e tamanhos configuráveis, exportação, migração de banco antigo, assistente, simulador | passou em SQLite. PostgreSQL 16 passou antes do modo servidor e **não foi reexecutado** depois |
+| `backend/tests` (71 testes): API, banco, fluxo com ESP32 simulado **real via HTTP**, falhas do ESP32, modo servidor (ONNX sintético no formato do ResNet: binário, NHWC 0..255, `probs`, limiar 0,19, faixa de dúvida, enquadramento do notebook), o modelo real soilnet v1 no simulador e no backend, classes e tamanhos configuráveis, exportação, migração de banco antigo, assistente, simulador | passou em SQLite. PostgreSQL 16 passou antes do modo servidor e **não foi reexecutado** depois |
 | `scripts/download-model.sh` (17/11): já baixado, pasta vazia (com `gh` simulado), arquivo corrompido, sem login, `--check` | passou. O download real da release privada (`gh`/`GITHUB_TOKEN`) e o `download-model.ps1` **não foram executados** |
 | Dockerfile, etapa que confere o modelo com `model.lock` (17/11, isolada): certo, ausente, diferente, `ALLOW_NO_MODEL=1` | passou. O build completo da imagem **não** foi executado |
 | Falhas do ESP32 (offline, 500, classe inventada, bomba > 60 s, não configurado) não gravam nada nem deixam arquivo órfão | testado |
 | Anti path traversal no armazenamento | testado |
-| `ai-model/tests`: parse de classes, formatos Roboflow (pasta e CSV), duplicatas, partição estratificada, recusa de detecção | passou |
-| Treino Keras → TFLite int8 → simulador (TFLite) com dataset **sintético** | funcionou (acurácia 100% num dataset trivial; **não significa nada** para fotos reais) |
+| `ai-model/tests` (10 testes): classes binárias iguais ao `config.h`, mapa de pastas (Dusty exige decisão), formatos Roboflow (pasta e CSV), duplicatas, partição estratificada, métricas por limiar, escolha do limiar, RGB565 igual ao simulador, card no formato do soilnet, recusa de detecção | passou |
+| Treino Keras → TFLite int8 → simulador → backend (17/11, TensorFlow 2.21, dataset **sintético** `Limpar`/`NaoLimpar`) | funcionou: 28 KB, entrada/saída int8 iguais às do soilnet v1, sujas → SEVERO com bomba, limpas → LIMPO. Acurácia 100% num dataset trivial **não significa nada** para fotos reais. Virou teste fixo: `backend/tests/test_trained_esp32_model.py` |
 | Front no Chromium (Playwright) contra o stack real (PostgreSQL + API + simulador): analisar, bomba, cooldown, histórico, filtro, correção, painel, assistente, erro, mobile escuro, sem scroll horizontal, sem erros de console | passou |
 | Política da bomba em C++ (incluindo virada do `millis()`) | passou |
 | Sintaxe do Terraform (python-hcl2) | ok |

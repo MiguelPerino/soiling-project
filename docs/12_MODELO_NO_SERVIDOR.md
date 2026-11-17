@@ -102,8 +102,7 @@ configurada) e use **Exportar fotos revisadas** (`GET /api/export/training.zip`)
 `SEVERO/` (= Limpar) e um `labels.csv`. As fotos saem no tamanho guardado; cada treino as redimensiona.
 
 ## Fora do escopo desta mudança
-`ai-model/training/` (pipeline Keras → TFLite do ESP32) ainda assume 3 classes e não foi alterado: o modelo do ESP32 vem do
-notebook do time. O firmware, o protocolo e `tflite_engine.py` (simulador com o soilnet real) também não mudaram.
+O firmware e o protocolo não mudaram. `ai-model/training/` (pipeline do ESP32) passou a ser binário em 17/11 (`docs/02_DATASET_E_TREINO.md`).
 
 ## O que foi e o que não foi testado
 Testado automaticamente (`backend/tests/test_server_engine.py`), com um ONNX **sintético no mesmo formato do ResNet** (NHWC 0..255,
