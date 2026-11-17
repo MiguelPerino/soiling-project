@@ -6,7 +6,8 @@ description: Preparar e conduzir a demonstração ao vivo (checklist, roteiro, p
 
 Roteiro completo e tabela de falhas: `docs/10_ROTEIRO_APRESENTACAO.md`. Resumo:
 1. Ensaiar **na rede real**; `curl http://IP-ESP32/` do computador; indicador do topo em "ESP32 online".
-2. Modelo **treinado** gravado (não o sintético); fotos de reserva (suja e limpa) no celular.
-3. Fluxo: foto suja → resultado + bomba; foto limpa → bomba não aciona; SEVERO repetido → intervalo mínimo; histórico + correção; painel; assistente.
+2. Placa com o `soilnet-2x-112-20261116`; modelo grande baixado (`scripts/download-model.sh --check`); fotos de reserva (suja e limpa) no celular.
+3. Fluxo: modo ESP32 com foto suja → "Precisa limpar" + bomba; foto limpa → "Não precisa limpar", sem bomba; repetida → intervalo mínimo;
+   mesma foto no modo Servidor (ResNet50, sem bomba); histórico + correção; painel; assistente.
 4. Plano B: simulador (`--profile sim`), "Reanalisar" foto do histórico se a câmera falhar, plano B por regras se o Gemini falhar.
 Seja claro com a banca sobre o que é protótipo: acurácia medida em quais fotos, limites de memória do ESP32, ausência de TLS/login.

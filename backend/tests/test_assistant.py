@@ -39,6 +39,8 @@ def test_rules_two_classes():
 def test_deterministic_summary_uses_two_classes():
     text, src = Assistant(None).summarize("q", SearchFilter(labels=[Label.SEVERO]), 2, STATS)
     assert src == "regras" and "8 não precisam de limpeza e 2 precisam de limpeza" in text and "precisa limpar" in text
+    one = Assistant(None).summarize("q", SearchFilter(), 2, {**STATS, "total": 2, "por_rotulo": {"LIMPO": 1, "SEVERO": 1}})[0]
+    assert "1 não precisa de limpeza e 1 precisa de limpeza" in one
 
 
 def test_interpret_gemini_and_fallback():

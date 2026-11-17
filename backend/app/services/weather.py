@@ -21,25 +21,30 @@ AVISO = "Recomendação baseada em previsão e em limiares provisórios. Ela ape
 MAX_MISSING = 6            # horas sem dado (de 48) toleradas antes de declarar "indisponível"
 
 
+def _mm(v: float) -> str:
+    """1.8 -> "1,8 mm" (texto em português)."""
+    return f"{v:.1f}".replace(".", ",") + " mm"
+
+
 def advice(past_mm: float, next_mm: float, prob_max: float | None, light: float, heavy: float) -> dict:
     """Regra pura (sem rede). `nivel`: limpar_agora | avaliar | adiar."""
     notes: list[str] = []
     if next_mm >= heavy:
         nivel, titulo = "adiar", "Chuva forte prevista: considere adiar a limpeza"
-        msg = (f"Previsão de {next_mm:.1f} mm nas próximas 24 h. Chuva forte tende a lavar o painel; limpar agora pode gastar água à toa.")
+        msg = (f"Previsão de {_mm(next_mm)} nas próximas 24 h. Chuva forte tende a lavar o painel; limpar agora pode gastar água à toa.")
     elif next_mm >= light:
         nivel, titulo = "avaliar", "Chuva fraca prevista: avalie esperar passar"
-        msg = (f"Previsão de {next_mm:.1f} mm nas próximas 24 h. Chuva fraca pode molhar a poeira e deixar lama e marcas; "
+        msg = (f"Previsão de {_mm(next_mm)} nas próximas 24 h. Chuva fraca pode molhar a poeira e deixar lama e marcas; "
                "se for limpar, o melhor costuma ser depois que a chuva passar.")
     else:
         nivel, titulo = "limpar_agora", "Sem chuva relevante prevista: limpar agora faz sentido"
-        msg = f"Previsão de {next_mm:.1f} mm nas próximas 24 h."
+        msg = f"Previsão de {_mm(next_mm)} nas próximas 24 h."
         if prob_max is not None and prob_max >= 60:
             notes.append(f"Atenção: a probabilidade máxima de chuva é {prob_max:.0f}%, embora o volume previsto seja baixo.")
     if past_mm >= heavy:
-        notes.append(f"Choveu {past_mm:.1f} mm nas últimas 24 h: o painel pode já ter sido lavado. Confira a foto antes de limpar.")
+        notes.append(f"Choveu {_mm(past_mm)} nas últimas 24 h: o painel pode já ter sido lavado. Confira a foto antes de limpar.")
     elif past_mm >= light:
-        notes.append(f"Choveu {past_mm:.1f} mm nas últimas 24 h: pode ter sujado (lama) ou limpado um pouco. Confira a foto.")
+        notes.append(f"Choveu {_mm(past_mm)} nas últimas 24 h: pode ter sujado (lama) ou limpado um pouco. Confira a foto.")
     return {"nivel": nivel, "titulo": titulo, "mensagem": msg, "observacoes": notes}
 
 

@@ -47,7 +47,9 @@ def _allowed_numbers(payload: dict) -> set[str]:
 def deterministic_summary(question: str, f: SearchFilter, total: int, stats: dict) -> str:
     por = stats["por_rotulo"]
     parts = [f"Encontrei {total} análise(s) para: {describe_filter(f)}."]
-    parts.append(f"No histórico inteiro: {stats['total']} análises — {por['LIMPO']} não precisam de limpeza e {por['SEVERO']} precisam de limpeza.")
+    precisa = lambda n: "precisa" if n == 1 else "precisam"
+    parts.append(f"No histórico inteiro: {stats['total']} análise(s) — {por['LIMPO']} não {precisa(por['LIMPO'])} de limpeza "
+                 f"e {por['SEVERO']} {precisa(por['SEVERO'])} de limpeza.")
     if stats["para_revisao"]:
         parts.append(f"{stats['para_revisao']} análise(s) com baixa confiança aguardam revisão humana.")
     return " ".join(parts)

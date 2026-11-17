@@ -63,7 +63,7 @@ Ou com Docker (PostgreSQL incluso): `cp .env.example .env`, edite, `docker compo
 
 | Parte | Estado |
 | --- | --- |
-| Backend, banco (SQLite **e** PostgreSQL 16), protocolo com ESP32 simulado | testado automaticamente: 77 testes em SQLite. PostgreSQL 16 passou antes do modo servidor (10/11) e **não foi reexecutado** depois |
+| Backend, banco (SQLite **e** PostgreSQL 16), protocolo com ESP32 simulado | testado automaticamente: 78 testes em SQLite. PostgreSQL 16 passou antes do modo servidor (10/11) e **não foi reexecutado** depois |
 | **Firmware no ESP32 (12/11, soilnet v1)** | **compilado, gravado e rodando numa placa esp32dev** com o modelo anterior (soilnet v1): carrega, conecta no Wi‑Fi, responde ao backend, e uma imagem `SEVERO` acendeu o LED azul (GPIO 2). Houve folga de memória (relato da equipe) |
 | **Firmware com o soilnet 2x (17/11)** | `config.h` e `model_data.h` atualizados e coerentes com o card (teste automático); compilam em `g++`. **Não compilado no PlatformIO nem gravado na placa**: mesmos operadores do v1, ativações estimadas iguais (~67 KB), flash 192 KB |
 | Enquadramento antes do ESP32 | o JPEG enviado é byte a byte o do caminho do notebook (tratamento → 224 JPEG 95 → 112 → JPEG 85); caminho completo com o soilnet 2x real no simulador testado |

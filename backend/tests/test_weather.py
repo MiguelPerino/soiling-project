@@ -90,3 +90,9 @@ def test_route_and_config(repo, settings):
         j = c.get("/api/weather/advice").json()
         assert j["nivel"] == "avaliar" and j["limiares"] == {"fraca_mm": 1, "forte_mm": 10} and "não aciona a bomba" in j["aviso"]
         assert c.get("/api/config").json()["weather"] is True
+
+
+def test_messages_use_brazilian_decimal_comma():
+    from app.services.weather import advice
+    a = advice(1.8, 0.5, None, 1.0, 10.0)
+    assert "0,5 mm" in a["mensagem"] and any("1,8 mm" in n for n in a["observacoes"])

@@ -7,10 +7,10 @@ servido pelo FastAPI (e pelo Docker).
 
 | Aba | Faz |
 | --- | --- |
-| Analisar | escolhe/tira foto, reduz no navegador para o tamanho do modelo, envia, mostra classe, probabilidades, bomba, tempos |
-| Histórico | cards com filtros (classe, para revisar, bomba acionada), detalhe, **correção humana**, reanálise, apagar |
-| Painel | totais, limpezas acionadas, tempo de bomba, para revisar, confiança média, gráfico por dia (atualiza a cada 10 s) |
-| Assistente | busca em português nas análises ou dúvida geral sobre soiling |
+| Analisar | escolhe o modo (**ESP32**, com bomba, ou **Servidor**, sem bomba), escolhe/tira foto, reduz no navegador para no máximo `UPLOAD_MAX_SIDE` px (sem esticar), envia e mostra "Não precisa limpar"/"Precisa limpar", confiança, probabilidades (com a marca do limiar no modo Servidor), bomba e tempos. O backend enquadra a foto e gera o tamanho de cada modelo |
+| Histórico | tabela com filtros (classe, mecanismo, para revisar, bomba acionada), detalhe, **correção humana** (só as 2 classes), reanálise, apagar, exportar fotos revisadas |
+| Painel | totais por classe, para revisar, por mecanismo (ESP32 × Servidor), limpezas acionadas, tempo de bomba, confiança média, gráfico por dia, chuva; atualiza a cada análise ou correção |
+| Assistente | busca em português nas análises ("quais precisam limpar hoje?") ou dúvida geral sobre soiling |
 
 Topo: indicador do ESP32 (consulta `/api/devices/status` a cada 5 s; mostra "simulador" quando for o simulador) e botão **Admin** (chave guardada só na aba).
 
@@ -19,7 +19,7 @@ Testado só no Chromium desktop e emulação de celular; teste no aparelho que s
 
 **Reanalisar** (no detalhe de uma análise) reenvia uma foto já guardada: é a "imagem de reserva" se a câmera falhar. Cria uma nova análise, com a bomba desativada.
 
-## Recomendação de chuva (aba Analisar, no topo)
+## Recomendação de chuva (abas Painel e Analisar)
 Antes de enviar a foto, a pessoa vê uma recomendação baseada na previsão da [Open‑Meteo](https://open-meteo.com/) para a posição do painel
 (`PANEL_LAT`/`PANEL_LON`; padrão Londrina‑PR −23,3103 / −51,1628). **Só informa**: não aciona nem bloqueia a bomba; quem decide é a pessoa.
 | Chuva prevista em 24 h | Recomendação |

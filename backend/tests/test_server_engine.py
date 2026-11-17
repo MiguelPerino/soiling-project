@@ -191,7 +191,7 @@ def test_parse_classes():
 def test_settings_from_env(monkeypatch):
     for k in ("ESP32_CLASSES", "ESP32_INPUT_SIZE", "SERVER_INPUT_SIZE", "SERVER_REVIEW_UNTIL", "SERVER_FRAMING", "INPUT_SIZE"):
         monkeypatch.delenv(k, raising=False)
-    d = Settings.from_env()                                                           # padrão = modelo soilnet v1 (binário, 112)
+    d = Settings.from_env()                                                           # padrão = modelo do ESP32 (soilnet 2x: binário, 112)
     assert d.esp32_classes == ("LIMPO", "SEVERO") and d.input_size == 112 and d.server_input_size == 0
     assert d.server_review_until == 0.5 and d.server_framing == "panel"
     monkeypatch.setenv("ESP32_INPUT_SIZE", "128")
