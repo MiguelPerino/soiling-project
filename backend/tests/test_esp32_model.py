@@ -131,3 +131,14 @@ def test_rgb565_expansion_matches_the_firmware():
     from esp32_simulator.tflite_engine import to_rgb565
     out = to_rgb565(np.array([[[255, 255, 255], [0, 0, 0], [128, 128, 128], [7, 3, 7]]]))
     assert out.astype(int).tolist() == [[[255, 255, 255], [0, 0, 0], [132, 130, 132], [0, 0, 0]]]   # (r5<<3)|(r5>>2), (g6<<2)|(g6>>4)
+
+
+def test_simulator_cli_defaults_match_the_firmware():
+    """O simulador imita a placa: duração e intervalo da bomba padrão = config.h."""
+    import inspect
+    from esp32_simulator import server
+    text = (SRC / "config.h").read_text(encoding="utf-8")
+    dur = int(re.search(r"PUMP_DURATION_MS\s*=\s*(\d+);", text).group(1))
+    cool = int(re.search(r"PUMP_COOLDOWN_MS\s*=\s*(\d+);", text).group(1))
+    src = inspect.getsource(server.main)
+    assert f'"--pump-ms", type=int, default={dur}' in src and f'"--cooldown-s", type=float, default={cool / 1000}' in src

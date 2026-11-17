@@ -29,7 +29,8 @@ RUN cd /models/server && if awk '$1=="sha256"{print $2"  "$3}' model.lock | sha2
         echo "ERRO: models/server/ não tem o modelo esperado pelo model.lock. Rode scripts/download-model.sh antes do build" \
              "(ou use --build-arg ALLOW_NO_MODEL=1 para construir sem ele)."; exit 1; \
     fi
-ENV FRONTEND_DIR=/app/frontend_dist STORAGE_DIR=/data/images SERVER_MODEL_DIR=/models/server
+# Sem DATABASE_URL (ex.: Azure com persistent=false), o SQLite fica em /data, que é do usuário "app" (/app não é gravável por ele).
+ENV FRONTEND_DIR=/app/frontend_dist STORAGE_DIR=/data/images SERVER_MODEL_DIR=/models/server DATABASE_URL=sqlite:////data/app.db
 RUN useradd -r -u 10001 app && mkdir -p /data/images && chown -R app /data
 USER app
 EXPOSE 8000

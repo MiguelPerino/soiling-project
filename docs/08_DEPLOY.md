@@ -7,7 +7,9 @@ cp .env.example .env            # preencha POSTGRES_PASSWORD, ADMIN_API_KEY, ESP
 docker compose up -d --build    # http://IP-DO-COMPUTADOR:8000  (abra no celular com esse IP)
 ```
 Sem hardware: `docker compose --profile sim up -d --build` e `ESP32_URL=http://simulador:8081`. Sem Docker: `scripts/dev.sh`.
-A demonstração funciona **sem internet** (Gemini cai no plano B; a recomendação de chuva mostra "sem dados"). **Docker não foi executado** ao construir este projeto: `docker compose build` pode exigir ajustes.
+A demonstração funciona **sem internet** (Gemini cai no plano B; a recomendação de chuva mostra "sem dados"). Antes do primeiro `docker compose up`, rode `scripts/download-model.sh` (o build exige o modelo grande; veja `12_MODELO_NO_SERVIDOR.md`).
+**Testado em 17/11** com Docker 29: `docker compose --profile sim up -d --build` sobe PostgreSQL + app + simulador (soilnet 2x); análises nos dois
+modos gravadas no PostgreSQL e as fotos no volume.
 
 ### Armadilhas de rede
 - **Isolamento de clientes:** hotspots de celular e Wi‑Fi de visitantes costumam impedir dispositivos de se falarem. Teste `curl http://IP-DO-ESP32/` **do computador** antes. Se falhar, use um roteador seu.
@@ -26,9 +28,11 @@ O modelo grande vai dentro da imagem (`models/server/` é copiado no `docker bui
 o build confere o SHA-256 com `models/server/model.lock` e falha se o modelo faltar ou for outro (`--build-arg ALLOW_NO_MODEL=1` para construir sem ele).
 
 ### Limites honestos
-- **Terraform e o build completo do Docker não foram executados** ao construir o projeto (só a sintaxe HCL foi conferida com `python-hcl2`). Espere ajustes no primeiro `apply`.
-  Em 17/11 só a etapa do Dockerfile que confere o modelo foi executada, isolada, com Docker 29 (modelo certo, ausente, diferente e `ALLOW_NO_MODEL=1`);
-  o build inteiro parou no `pip install` por causa do proxy do ambiente de teste, não do projeto.
+- **O que já foi executado (17/11):** build completo das duas imagens; a imagem da app rodando **como na Azure** (sem `DATABASE_URL`, sem ESP32):
+  sobe `healthy`, serve o front, o modo Servidor classifica (ResNet50, ~60 ms por foto) e usa **~306 MiB de RAM** (a Azure reserva 2 GiB);
+  `terraform init`, `validate` e `fmt -check` (Terraform 1.9.8, azurerm 4.x) passam.
+- **O que não foi executado:** `terraform plan`/`apply` (precisam de uma conta Azure) e o envio ao ACR. Espere algum ajuste de região ou cota na
+  conta de estudante no primeiro `apply`.
 - Contas Azure for Students limitam as regiões e, às vezes, o PostgreSQL: por isso `location` e `persistent` são variáveis.
 - Com `persistent = false` (padrão), banco e fotos ficam no disco do contêiner e somem se ele reiniciar.
 - O site é público: `ADMIN_API_KEY` é obrigatória; fotos de visitantes ficam no sistema.

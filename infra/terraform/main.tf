@@ -9,7 +9,7 @@ resource "random_string" "suffix" {
 }
 
 locals {
-  base = "${var.name}${random_string.suffix.result}"   # único no mundo (ACR e Storage exigem)
+  base = "${var.name}${random_string.suffix.result}" # único no mundo (ACR e Storage exigem)
 }
 
 resource "azurerm_resource_group" "rg" {
@@ -24,7 +24,7 @@ resource "azurerm_container_registry" "acr" {
   resource_group_name = azurerm_resource_group.rg.name
   location            = azurerm_resource_group.rg.location
   sku                 = "Basic"
-  admin_enabled       = true   # usuário/senha do registro: simples e não exige permissão de papéis (RBAC)
+  admin_enabled       = true # usuário/senha do registro: simples e não exige permissão de papéis (RBAC)
   tags                = var.tags
 }
 
@@ -35,7 +35,7 @@ resource "azurerm_log_analytics_workspace" "logs" {
   location            = azurerm_resource_group.rg.location
   sku                 = "PerGB2018"
   retention_in_days   = 30
-  daily_quota_gb      = 0.5   # trava de custo
+  daily_quota_gb      = 0.5 # trava de custo
   tags                = var.tags
 }
 
@@ -148,7 +148,7 @@ resource "azurerm_container_app" "app" {
     }
   }
   dynamic "secret" {
-    for_each = var.gemini_api_key != "" ? [1] : []
+    for_each = nonsensitive(var.gemini_api_key != "") ? [1] : []
     content {
       name  = "gemini-api-key"
       value = var.gemini_api_key
@@ -167,7 +167,7 @@ resource "azurerm_container_app" "app" {
 
   template {
     min_replicas = var.min_replicas
-    max_replicas = 1   # SQLite e o limite de envios por foto assumem uma instância só
+    max_replicas = 1 # SQLite e o limite de envios por foto assumem uma instância só
 
     dynamic "volume" {
       for_each = var.persistent ? [1] : []
@@ -194,7 +194,7 @@ resource "azurerm_container_app" "app" {
 
       env {
         name  = "ESP32_URL"
-        value = ""   # a nuvem não alcança o ESP32 da sua rede: o modo ESP32 fica indisponível aqui
+        value = "" # a nuvem não alcança o ESP32 da sua rede: o modo ESP32 fica indisponível aqui
       }
       env {
         name  = "ESP32_INPUT_SIZE"
@@ -228,14 +228,14 @@ resource "azurerm_container_app" "app" {
         }
       }
       dynamic "env" {
-        for_each = var.gemini_api_key != "" ? [1] : []
+        for_each = nonsensitive(var.gemini_api_key != "") ? [1] : []
         content {
           name        = "GEMINI_API_KEY"
           secret_name = "gemini-api-key"
         }
       }
       dynamic "env" {
-        for_each = var.gemini_api_key != "" && var.gemini_model != "" ? [1] : []
+        for_each = nonsensitive(var.gemini_api_key != "") && var.gemini_model != "" ? [1] : []
         content {
           name  = "GEMINI_MODEL"
           value = var.gemini_model

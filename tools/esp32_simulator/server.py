@@ -142,8 +142,8 @@ def main() -> None:
     ap.add_argument("--host", default="0.0.0.0")
     ap.add_argument("--port", type=int, default=8081)
     ap.add_argument("--key", default="", help="X-Device-Key exigida (igual a ESP32_KEY do backend)")
-    ap.add_argument("--pump-ms", type=int, default=5000)
-    ap.add_argument("--cooldown-s", type=float, default=60.0)
+    ap.add_argument("--pump-ms", type=int, default=2000, help="igual a PUMP_DURATION_MS do firmware (config.h)")
+    ap.add_argument("--cooldown-s", type=float, default=10.0, help="igual a PUMP_COOLDOWN_MS/1000 do firmware (config.h)")
     a = ap.parse_args()
     model_dir = a.model_dir
     if a.demo_model:

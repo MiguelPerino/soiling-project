@@ -63,7 +63,7 @@ Ou com Docker (PostgreSQL incluso): `cp .env.example .env`, edite, `docker compo
 
 | Parte | Estado |
 | --- | --- |
-| Backend, banco (SQLite **e** PostgreSQL 16), protocolo com ESP32 simulado | testado automaticamente: 76 testes em SQLite. PostgreSQL 16 passou antes do modo servidor (10/11) e **não foi reexecutado** depois |
+| Backend, banco (SQLite **e** PostgreSQL 16), protocolo com ESP32 simulado | testado automaticamente: 77 testes em SQLite. PostgreSQL 16 passou antes do modo servidor (10/11) e **não foi reexecutado** depois |
 | **Firmware no ESP32 (12/11, soilnet v1)** | **compilado, gravado e rodando numa placa esp32dev** com o modelo anterior (soilnet v1): carrega, conecta no Wi‑Fi, responde ao backend, e uma imagem `SEVERO` acendeu o LED azul (GPIO 2). Houve folga de memória (relato da equipe) |
 | **Firmware com o soilnet 2x (17/11)** | `config.h` e `model_data.h` atualizados e coerentes com o card (teste automático); compilam em `g++`. **Não compilado no PlatformIO nem gravado na placa**: mesmos operadores do v1, ativações estimadas iguais (~67 KB), flash 192 KB |
 | Enquadramento antes do ESP32 | o JPEG enviado é byte a byte o do caminho do notebook (tratamento → 224 JPEG 95 → 112 → JPEG 85); caminho completo com o soilnet 2x real no simulador testado |
@@ -73,6 +73,7 @@ Ou com Docker (PostgreSQL incluso): `cp .env.example .env`, edite, `docker compo
 | **Acurácia com fotos reais na placa** | **não medida por nós**: só as métricas de teste dos notebooks. Limiares alinhados: ESP32 0,50 na placa e no backend (`LOW_CONFIDENCE_THRESHOLD`) |
 | **Bomba real, uso contínuo, tempo de inferência medido, Wi‑Fi da universidade** | **não testados**: só o LED foi verificado, com imagens de cor lisa (prova o caminho, não a acurácia) |
 | Gemini real | **não testado** contra a API (sem rede no ambiente de construção); testado com cliente falso |
-| Docker, Terraform | build completo da imagem e Terraform **não executados**; só a etapa do Dockerfile que confere o modelo grande rodou (17/11) e o Terraform teve a sintaxe verificada |
+| Docker (17/11) | build das duas imagens, `docker compose --profile sim` com PostgreSQL + simulador (análises nos dois modos gravadas) e a imagem rodando como na Azure (`healthy`, ~306 MiB de RAM): **testados** |
+| Terraform (17/11) | `init`, `validate` e `fmt -check` passam. `plan`/`apply` **não executados** (precisam de conta Azure) |
 
 Detalhes e checklist: `docs/09_TESTES_E_VALIDACAO.md`. Perguntas em aberto: `docs/11_PENDENCIAS.md`.

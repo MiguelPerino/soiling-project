@@ -57,7 +57,7 @@ Python 3.13; use SEMPRE o `.venv` na raiz (`.venv/bin/python`, `.venv\Scripts\py
 7. A IA (Gemini) só traduz pergunta→filtro e redige resumo com números que o banco forneceu. Sem chave ou em falha, há plano B
    por regras. Nunca envie fotos à IA. `GEMINI_MODEL` não tem padrão de propósito.
 8. **Chuva (Open‑Meteo) é só aviso**: falha/indisponível ⇒ o sistema segue normal; limiares (`RAIN_LIGHT_MM`, `RAIN_HEAVY_MM`) são provisórios; o crédito "Open‑Meteo.com" fica visível; uso gratuito é só não comercial.
-9. Segredos só em `.env` / SSM. Nunca em código, log ou commit.
+9. Segredos só em `.env` (local) e `terraform.tfvars`/state do Terraform (Azure), todos fora do git. Nunca em código, log ou commit.
 10. Nunca diga que algo foi testado sem ter rodado. O que NÃO está validado está listado em `README.md` e `docs/09_TESTES_E_VALIDACAO.md`.
 
 ## Antes de entregar uma mudança

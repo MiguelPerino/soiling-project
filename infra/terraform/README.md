@@ -3,7 +3,9 @@
 Sobe UM contêiner (API + front compilado) no Azure Container Apps, com HTTPS público. O modo **ESP32 não funciona na nuvem**
 (o ESP32 está na sua rede local): lá só o modo **Servidor** (modelo grande). O ESP32 você mostra rodando local (`scripts/dev-esp32.sh IP`).
 
-> Escrito sem poder aplicar na Azure: `terraform validate` e o primeiro `apply` são o teste. Mande o erro se aparecer.
+> Conferido em 17/11: `terraform init`, `validate` e `fmt -check` passam (Terraform 1.9.8, azurerm 4.x) e a imagem roda como aqui
+> (sem `DATABASE_URL`, sem ESP32): `healthy`, front, modo Servidor, ~306 MiB de RAM. **Ainda não foi aplicado numa conta Azure**:
+> o primeiro `apply` é o teste final. `.terraform.lock.hcl` fixa as versões dos provedores (tem as somas de Windows, macOS e Linux).
 
 ## Pré-requisitos
 `az` (Azure CLI), `terraform` >= 1.6 e Docker. Entre com `az login` e confirme a assinatura de estudante: `az account show`.
@@ -21,6 +23,7 @@ terraform apply -target=azurerm_resource_group.rg -target=azurerm_container_regi
 ACR=$(terraform output -raw acr_login_server)
 az acr login --name $(terraform output -raw acr_name)
 cd ../..
+scripts/download-model.sh                        # modelo grande (Windows: scripts\download-model.ps1); o build falha sem ele
 docker build --platform linux/amd64 -t $ACR/soiling:v1 .
 docker push $ACR/soiling:v1
 cd infra/terraform
@@ -30,8 +33,8 @@ terraform apply
 terraform output site_url
 ```
 Nova versão do código: `docker build ... -t $ACR/soiling:v2`, `docker push`, `image_tag = "v2"` no `terraform.tfvars`, `terraform apply`.
-Antes do build, rode `scripts/download-model.sh` na raiz (precisa de `gh auth login` ou `GITHUB_TOKEN`): a imagem leva o modelo dentro,
-e o `docker build` **falha** se `models/server/` não tiver exatamente o modelo do `model.lock`.
+O `download-model` precisa de `gh auth login` ou `GITHUB_TOKEN` (repositório privado). A imagem leva o modelo dentro, e o `docker build`
+**falha** se `models/server/` não tiver exatamente o modelo do `model.lock`.
 
 ## Conferir
 `curl $(terraform output -raw site_url)/api/health` e abra o `site_url`: o modo Servidor deve aparecer ativo e o modo ESP32 indisponível.
