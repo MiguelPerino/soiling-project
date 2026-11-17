@@ -9,4 +9,5 @@ python-multipart==0.0.33
 pillow==13.0.0
 numpy==2.5.4
 onnxruntime==1.31.1
+opencv-python-headless==4.14.0.94   # só para o enquadramento do modelo grande (mesmo código do notebook de tratamento)
 tzdata==2026.6

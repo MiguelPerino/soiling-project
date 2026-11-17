@@ -41,6 +41,8 @@ Campos do `model_card.json` que o backend usa (`backend/app/services/server_mode
 | `onnx.input.faixa` | `[0,255]` ⇒ pixels crus, a normalização vive dentro do ONNX | 0..1 normalizado com `mean`/`std` (ImageNet) |
 | `onnx.output.name` = `probs` (ou `output: "probs"`) | a saída já é probabilidade; **não** aplica softmax de novo | aplica softmax (logits) |
 | `preprocessamento.img_size` | lado da entrada | `input_size`, depois o tamanho fixo do ONNX, depois 224 |
+| `preprocessamento.enquadramento` (opcional) | `panel`, `center` ou `none` (abaixo) | `SERVER_FRAMING` (padrão `panel`) |
+| `preprocessamento.margem` / `frac_central` / `wide_ratio` (opcionais) | parâmetros do enquadramento | 0,06 / 0,90 / 1,5 (os do notebook) |
 
 Regras (iguais às do ESP32 binário):
 - **Decisão por limiar, não por maior probabilidade.** Com limiar 0,19, P(Limpar) = 0,30 já é "Precisa limpar".
@@ -52,10 +54,20 @@ Regras (iguais às do ESP32 binário):
   ou se o limiar estiver fora de (0, 1). O modo ESP32 segue normal.
 - Trocar de modelo = trocar os 3 arquivos e reiniciar o backend. Nenhum código muda.
 
-### Pendente: enquadramento do notebook
-O card diz "use o `preprocess.py` do notebook de tratamento (enquadramento + 224×224 RGB)". **O backend ainda não faz esse
-enquadramento**: ele só estica a foto para 224×224 (sem recorte). Enquanto o `preprocess.py` não for portado, a foto que chega ao
-modelo pode diferir da do treino, e a acurácia real pode ficar abaixo da do notebook.
+### Enquadramento (o mesmo do treino)
+O ResNet foi treinado com fotos tratadas pelo notebook `tratamento_dataset_224.ipynb`, e a inferência usa **o mesmo código**
+(`backend/app/services/framing.py`, cópia do `preprocess.py` que o notebook gera; depende de `opencv-python-headless`):
+1. remove faixas uniformes nas bordas (barras pretas/brancas);
+2. acha a placa pela cor (azul ou cinza/preta) e recorta um quadrado em volta dela, com 6% de folga;
+   se não achar (ou a placa ocupar menos de 12% da foto), recorte quadrado central de 90% do lado menor;
+3. região alongada demais (> 1,5): completa o quadrado com um fundo desfocado da própria foto, em vez de cortar a placa;
+4. redimensiona para 224×224. Nenhuma mudança de cor.
+
+Conferido em 17/11: rodando o código do notebook e o do backend lado a lado em 9 imagens (os 4 caminhos acima, tarja preta,
+placa ocupando tudo, foto pequena), a saída foi **idêntica pixel a pixel**. Se o notebook mudar, copie a célula de novo e retreine.
+Diferenças que sobram: o front reduz a foto para no máximo `UPLOAD_MAX_SIDE` (512 px) antes de enviar, e no treino as fotos tratadas
+foram regravadas em JPEG 95; são pequenas, mas não foram medidas.
+`SERVER_FRAMING=none` volta a esticar a foto inteira (só para modelos treinados sem enquadramento).
 
 ## Variáveis (ver `.env.example`)
 | Variável | Padrão | Para quê |
@@ -65,6 +77,7 @@ modelo pode diferir da do treino, e a acurácia real pode ficar abaixo da do not
 | `SERVER_MODEL_DIR` | `models/server` | pasta do modelo grande |
 | `SERVER_INPUT_SIZE` | 0 | lado da entrada do modelo grande; 0 = usar o card |
 | `SERVER_REVIEW_UNTIL` | 0.5 | topo da faixa de dúvida (provisório) |
+| `SERVER_FRAMING` | `panel` | enquadramento antes do modelo grande: `panel`, `center` ou `none`; o card manda se tiver `preprocessamento.enquadramento` |
 | `UPLOAD_MAX_SIDE` | 512 | maior lado da foto que o front envia e que fica guardada |
 
 O front envia uma foto de até `UPLOAD_MAX_SIDE` px. O backend guarda essa foto e gera, a partir dela, a versão de cada modelo
@@ -84,5 +97,5 @@ Testado automaticamente (`backend/tests/test_server_engine.py`), com um ONNX **s
 saída `probs`, NaoLimpar/Limpar, limiar 0,19): carga, limiar, faixa de dúvida, mapeamento de nomes e ordem invertida, layout NCHW
 com logits, modelo ausente/inválido (3 saídas, sem `classe_positiva`, limiar inválido), os dois modos, bomba nunca acionada,
 correção humana só com 2 classes, exportação e linha antiga com MODERADO no banco.
-Com a **ResNet50 real** (`resnet50-224-20261116`): carrega, roda (≈20–25 ms por foto na CPU deste ambiente) e aparece no navegador,
-mas só com imagens sintéticas. **Não medidos:** acurácia em fotos reais, efeito de não fazer o enquadramento, latência no Azure.
+Com a **ResNet50 real** (`resnet50-224-20261116`): carrega, roda com o enquadramento (≈35–55 ms por foto na CPU deste ambiente)
+e aparece no navegador, mas só com imagens sintéticas. **Não medidos:** acurácia em fotos reais e latência no Azure.

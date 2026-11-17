@@ -11,6 +11,7 @@ o ESP32 aciona uma bomba de água. Há **dois modos** de análise, escolhidos no
   modelo do ESP32, encaminha (`POST /upload`), valida a resposta e grava arquivo + linha no banco.
 - **Servidor** (`engine=server`): um modelo grande opcional (ex.: ResNet, ONNX) roda no backend via ONNX Runtime. **Nunca aciona a bomba.**
   É binário: decide "Precisa limpar" quando P(positiva) ≥ `decisao.limiar` do card (hoje 0,19), com faixa de dúvida até `SERVER_REVIEW_UNTIL`.
+  Antes do modelo, a foto passa pelo enquadramento do notebook (`backend/app/services/framing.py`, cópia fiel do `preprocess.py`: não altere sem retreinar).
   Tamanho de entrada e classes são configuração (`ESP32_INPUT_SIZE`, `ESP32_CLASSES`, `SERVER_INPUT_SIZE`, `labels.json`). Veja `docs/12_MODELO_NO_SERVIDOR.md`.
 
 ## O que NÃO existe neste projeto (não reintroduza)
@@ -40,7 +41,7 @@ Python 3.13; use SEMPRE o `.venv` na raiz (`.venv/bin/python`, `.venv\Scripts\py
 1. **Classes**: o sistema tem só `LIMPO` e `SEVERO` (`backend/app/labels.py`, `tools/esp32_simulator/classifier.py`, `frontend/src/types.ts`).
    A ordem das saídas de cada modelo vem do `labels.json`/`model_card.json` dele (o do servidor usa NaoLimpar/Limpar + `classe_positiva`).
    `ai-model/training/` (pipeline Keras do ESP32) ainda assume 3 classes e não foi alterado: o modelo do ESP32 vem do notebook do time.
-2. **Contrato de pré-processamento**: imagem esticada (sem recorte) para `ESP32_INPUT_SIZE×ESP32_INPUT_SIZE` (padrão 112, soilnet v1), JPEG; a
+2. **Contrato de pré-processamento (ESP32)**: imagem esticada (sem recorte) para `ESP32_INPUT_SIZE×ESP32_INPUT_SIZE` (padrão 112, soilnet v1), JPEG; a
    normalização vive DENTRO do modelo. `INPUT_SIZE` aparece em `backend/app/config.py`, `firmware/esp32/src/config.h`,
    `model_card.json`. Se mudar um, mude todos.
 3. **Segurança da bomba** é imposta no FIRMWARE (`pump_policy.h`) e espelhada no simulador: só SEVERO, confiança ≥ limiar,

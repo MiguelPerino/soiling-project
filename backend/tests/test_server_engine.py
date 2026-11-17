@@ -64,7 +64,7 @@ def test_decide_rule(server_model):
 def test_preprocess_matches_the_model_contract(server_model):
     from PIL import Image
     x = server_model.preprocess(Image.new("RGB", (80, 40), (200, 100, 50)))
-    assert x.shape == (1, 32, 32, 3) and x.dtype == np.float32                   # NHWC, esticada, sem recorte
+    assert x.shape == (1, 32, 32, 3) and x.dtype == np.float32                   # NHWC, enquadrada (imagem lisa: só recorta)
     assert x[0, 0, 0].tolist() == [200.0, 100.0, 50.0]                           # 0..255, sem normalizar (vive no ONNX)
     p = server_model.predict(Image.new("RGB", (32, 32), DOUBT))
     assert p.p_positive == pytest.approx(p_limpar(DOUBT), abs=1e-5)              # saída já é probabilidade: sem 2º softmax
@@ -74,6 +74,7 @@ def test_config_exposes_threshold_and_review_band(client):
     srv = client.get("/api/config").json()["engines"]["server"]
     assert srv["classes"] == ["LIMPO", "SEVERO"] and srv["limiar"] == 0.19 and srv["revisao_ate"] == 0.5
     assert srv["versao"] == VERSION and srv["input_size"] == 32 and srv["aciona_bomba"] is False
+    assert srv["enquadramento"] == "panel"
 
 
 def test_review_until_from_settings_and_card(tmp_path):
@@ -188,16 +189,17 @@ def test_parse_classes():
 
 
 def test_settings_from_env(monkeypatch):
-    for k in ("ESP32_CLASSES", "ESP32_INPUT_SIZE", "SERVER_INPUT_SIZE", "SERVER_REVIEW_UNTIL", "INPUT_SIZE"):
+    for k in ("ESP32_CLASSES", "ESP32_INPUT_SIZE", "SERVER_INPUT_SIZE", "SERVER_REVIEW_UNTIL", "SERVER_FRAMING", "INPUT_SIZE"):
         monkeypatch.delenv(k, raising=False)
     d = Settings.from_env()                                                           # padrão = modelo soilnet v1 (binário, 112)
     assert d.esp32_classes == ("LIMPO", "SEVERO") and d.input_size == 112 and d.server_input_size == 0
-    assert d.server_review_until == 0.5
+    assert d.server_review_until == 0.5 and d.server_framing == "panel"
     monkeypatch.setenv("ESP32_INPUT_SIZE", "128")
     monkeypatch.setenv("SERVER_INPUT_SIZE", "256")
     monkeypatch.setenv("SERVER_REVIEW_UNTIL", "0.6")
+    monkeypatch.setenv("SERVER_FRAMING", "None")
     s = Settings.from_env()
-    assert s.input_size == 128 and s.server_input_size == 256 and s.server_review_until == 0.6
+    assert s.input_size == 128 and s.server_input_size == 256 and s.server_review_until == 0.6 and s.server_framing == "none"
     monkeypatch.delenv("ESP32_INPUT_SIZE")
     monkeypatch.setenv("INPUT_SIZE", "64")                                          # nome antigo continua valendo
     assert Settings.from_env().input_size == 64

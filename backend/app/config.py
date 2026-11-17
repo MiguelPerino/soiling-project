@@ -27,6 +27,7 @@ class Settings:
     server_model_dir: str = "models/server"     # pasta do modelo grande (ONNX), opcional; veja docs/12_MODELO_NO_SERVIDOR.md
     server_input_size: int = 0                   # SERVER_INPUT_SIZE: lado da entrada do modelo grande; 0 = usar o model_card.json
     server_review_until: float = 0.5             # SERVER_REVIEW_UNTIL (PROVISÓRIO): limiar <= P(precisa limpar) < isto => "revisar"
+    server_framing: str = "panel"                # SERVER_FRAMING: enquadramento do notebook (panel | center | none); o card manda se tiver
     upload_max_side: int = 512                   # o front reduz a foto para no máximo isto; o backend gera o tamanho de cada modelo
     weather_enabled: bool = True                 # recomendação de chuva (Open-Meteo); só informa, nunca aciona a bomba
     panel_lat: float = -23.3103                  # Londrina-PR (provisório: troque pela posição real do painel)
@@ -61,6 +62,7 @@ class Settings:
             server_model_dir=e.get("SERVER_MODEL_DIR", "models/server"),
             server_input_size=int(e.get("SERVER_INPUT_SIZE", "0")),
             server_review_until=float(e.get("SERVER_REVIEW_UNTIL", "0.5")),
+            server_framing=e.get("SERVER_FRAMING", "panel").strip().lower(),
             upload_max_side=int(e.get("UPLOAD_MAX_SIDE", "512")),
             weather_enabled=e.get("WEATHER_ENABLED", "1").strip().lower() in {"1", "true", "yes", "sim"},
             panel_lat=float(e.get("PANEL_LAT", "-23.3103")),

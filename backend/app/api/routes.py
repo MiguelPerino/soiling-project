@@ -56,7 +56,7 @@ def create_app(settings: Settings | None = None, *, repo: Repository | None = No
         if server_model is not None:
             app.state.server_model, app.state.server_error = server_model, None
         else:
-            app.state.server_model, app.state.server_error = try_load(cfg.server_model_dir, cfg.server_input_size, cfg.server_review_until)
+            app.state.server_model, app.state.server_error = try_load(cfg.server_model_dir, cfg.server_input_size, cfg.server_review_until, cfg.server_framing)
             if app.state.server_error:
                 log.info("modelo do servidor indisponível (opcional): %s", app.state.server_error)
         client = GeminiClient(cfg.gemini_api_key, cfg.gemini_model) if cfg.gemini_enabled else None
@@ -103,7 +103,8 @@ def create_app(settings: Settings | None = None, *, repo: Repository | None = No
             "server": {"disponivel": sm is not None, "classes": sm.info()["classes"] if sm else None,
                        "input_size": sm.size if sm else (cfg.server_input_size or None), "aciona_bomba": False,
                        "versao": sm.version if sm else None, "motivo": request.app.state.server_error,
-                       "limiar": sm.threshold if sm else None, "revisao_ate": sm.review_until if sm else None},
+                       "limiar": sm.threshold if sm else None, "revisao_ate": sm.review_until if sm else None,
+                       "enquadramento": sm.framing if sm else None},
         }
         return {"engines": engines, "rotulos": {l.value: LABEL_TEXT[l] for l in LABELS}, "upload_max_side": cfg.upload_max_side, "jpeg_quality": cfg.jpeg_quality,
                 "max_upload_mb": cfg.max_upload_mb, "low_confidence_threshold": cfg.low_confidence_threshold,
